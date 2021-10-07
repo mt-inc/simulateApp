@@ -39,6 +39,7 @@ extraResources:
   - node_modules/webidl-conversions
   - node_modules/typescript
   - node_modules/@types
+  - node_modules/@mt-inc
   - from: ./node_modules/lodash.zipobject
     to: ./node_modules/lodash.zipobject
 files:
