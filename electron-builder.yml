@@ -1,0 +1,62 @@
+appId: com.maxsh.bsb
+productName: Binance Simulate Bot
+copyright: Copyright © 2021 Maksym Shamko
+directories:
+  output: dist
+  buildResources: resources
+extraResources:
+  - node_modules/ts-node
+  - node_modules/@cspotcode/source-map-support
+  - node_modules/@tsconfig/node10
+  - node_modules/@tsconfig/node12
+  - node_modules/@tsconfig/node14
+  - node_modules/@tsconfig/node16
+  - node_modules/acorn
+  - node_modules/acorn-walk
+  - node_modules/arg
+  - node_modules/create-require
+  - node_modules/diff
+  - node_modules/make-error
+  - node_modules/yn
+  - node_modules/@cspotcode/source-map-consumer
+  - node_modules/isomorphic-unfetch
+  - node_modules/node-fetch
+  - node_modules/unfetch
+  - node_modules/adm-zip
+  - node_modules/binance-api-node
+  - node_modules/isomorphic-ws
+  - node_modules/reconnecting-websocket
+  - node_modules/ws
+  - node_modules/sha256-file
+  - node_modules/isomorphic-fetch
+  - node_modules/whatwg-fetch
+  - node_modules/encoding
+  - node_modules/is-stream
+  - node_modules/iconv-lite
+  - node_modules/safer-buffer
+  - node_modules/whatwg-url
+  - node_modules/tr46
+  - node_modules/webidl-conversions
+  - node_modules/typescript
+  - node_modules/@types
+  - from: ./node_modules/lodash.zipobject
+    to: ./node_modules/lodash.zipobject
+files:
+  - from: .
+    filter:
+      - package.json
+      - app
+      - helper
+asar: true
+asarUnpack:
+  - './helper'
+win:
+  icon: 'resources/jfc-t.ico'
+  target:
+    - 'portable'
+linux:
+  icon: 'resources/256x256.png'
+  category: 'Science'
+  target:
+    - 'AppImage'
+publish: null
