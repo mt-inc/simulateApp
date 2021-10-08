@@ -2,7 +2,7 @@
   "private": true,
   "name": "@mt-inc/simulate-app",
   "description": "Simulate App from MT Inc. Project",
-  "version": "1.0.6",
+  "version": "1.0.8",
   "author": "Maksym Shamko <max.shamko25@gmail.com>",
   "main": "app/background.js",
   "scripts": {
@@ -22,8 +22,8 @@
   "devDependencies": {
     "@emotion/react": "^11.4.1",
     "@emotion/styled": "^11.3.0",
-    "@mt-inc/bot": "^1.0.5",
-    "@mt-inc/strategy": "^1.0.7",
+    "@mt-inc/bot": "^1.0.6",
+    "@mt-inc/strategy": "^1.0.8",
     "@mt-inc/utils": "^1.0.3",
     "@mui/icons-material": "^5.0.1",
     "@mui/lab": "latest",

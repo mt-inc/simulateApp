@@ -494,7 +494,8 @@ export class Loader {
           tpP: sett.tp,
           slP: sett.sl,
         },
-        { tSlP: sett.tsl }
+        { tSlP: sett.tsl },
+        true
       )
       const candles = new Candle(sett.candle, (data: number[]) => {
         bot.work(data, now, positions, undefined, nowTime)

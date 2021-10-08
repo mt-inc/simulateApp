@@ -1,5 +1,5 @@
-appId: com.maxsh.bsb
-productName: Binance Simulate Bot
+appId: com.mt-inc.simulateApp
+productName: MT Симуляції
 copyright: Copyright © 2021 Maksym Shamko
 directories:
   output: dist

@@ -393,7 +393,7 @@ class Index extends React.Component<{}, State> {
     return (
       <>
         <Head>
-          <title>Binance Simulate Bot</title>
+          <title>MT Симуляції</title>
         </Head>
         <Dialog
           open={loading}
