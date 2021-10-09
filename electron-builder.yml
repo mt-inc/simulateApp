@@ -5,20 +5,6 @@ directories:
   output: dist
   buildResources: resources
 extraResources:
-  - node_modules/ts-node
-  - node_modules/@cspotcode/source-map-support
-  - node_modules/@tsconfig/node10
-  - node_modules/@tsconfig/node12
-  - node_modules/@tsconfig/node14
-  - node_modules/@tsconfig/node16
-  - node_modules/acorn
-  - node_modules/acorn-walk
-  - node_modules/arg
-  - node_modules/create-require
-  - node_modules/diff
-  - node_modules/make-error
-  - node_modules/yn
-  - node_modules/@cspotcode/source-map-consumer
   - node_modules/isomorphic-unfetch
   - node_modules/node-fetch
   - node_modules/unfetch
@@ -37,8 +23,6 @@ extraResources:
   - node_modules/whatwg-url
   - node_modules/tr46
   - node_modules/webidl-conversions
-  - node_modules/typescript
-  - node_modules/@types
   - node_modules/@mt-inc
   - from: ./node_modules/lodash.zipobject
     to: ./node_modules/lodash.zipobject
@@ -47,7 +31,8 @@ files:
     filter:
       - package.json
       - app
-      - helper
+      - helper/loader.js
+      - helper/worker.js
 asar: true
 asarUnpack:
   - './helper'

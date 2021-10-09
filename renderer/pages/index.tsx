@@ -1,40 +1,42 @@
-import React from 'react'
-import Head from 'next/head'
-import Typography from '@mui/material/Typography'
-import Box from '@mui/material/Box'
-import InputLabel from '@mui/material/InputLabel'
-import MenuItem from '@mui/material/MenuItem'
-import FormControl from '@mui/material/FormControl'
-import Select from '@mui/material/Select'
-import AppBar from '@mui/material/AppBar'
-import Toolbar from '@mui/material/Toolbar'
-import TextField from '@mui/material/TextField'
-import AdapterDateFns from '@mui/lab/AdapterDateFns'
-import LocalizationProvider from '@mui/lab/LocalizationProvider'
-import DateTimePicker from '@mui/lab/DateTimePicker'
-import ukLocale from 'date-fns/locale/uk'
-import Grid from '@mui/material/Grid'
-import Button from '@mui/material/Button'
-import Dialog from '@mui/material/Dialog'
-import DialogActions from '@mui/material/DialogActions'
-import DialogContent from '@mui/material/DialogContent'
-import DialogContentText from '@mui/material/DialogContentText'
-import DialogTitle from '@mui/material/DialogTitle'
-import LinearProgress from '@mui/material/LinearProgress'
-import Stepper from '@mui/material/Stepper'
-import Step from '@mui/material/Step'
-import StepLabel from '@mui/material/StepLabel'
-import ErrorIcon from '@mui/icons-material/Error'
-import Card from '@mui/material/Card'
-import CardHeader from '@mui/material/CardHeader'
-import CardContent from '@mui/material/CardContent'
-import FilterListIcon from '@mui/icons-material/FilterList'
-import Menu from '@mui/material/Menu'
-import IconButton from '@mui/material/IconButton'
-import Badge from '@mui/material/Badge'
-import SettingsIcon from '@mui/icons-material/Settings'
-import { pink, green, red, yellow } from '@mui/material/colors'
-import { ipcRenderer } from 'electron'
+import React from 'react';
+import Head from 'next/head';
+import { Time, Math as MathHelper } from '@mt-inc/utils/dist/cjs/index';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+import InputLabel from '@mui/material/InputLabel';
+import MenuItem from '@mui/material/MenuItem';
+import FormControl from '@mui/material/FormControl';
+import Select from '@mui/material/Select';
+import AppBar from '@mui/material/AppBar';
+import Toolbar from '@mui/material/Toolbar';
+import TextField from '@mui/material/TextField';
+import AdapterDateFns from '@mui/lab/AdapterDateFns';
+import LocalizationProvider from '@mui/lab/LocalizationProvider';
+import DateTimePicker from '@mui/lab/DateTimePicker';
+import ukLocale from 'date-fns/locale/uk';
+import Grid from '@mui/material/Grid';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogContentText from '@mui/material/DialogContentText';
+import DialogTitle from '@mui/material/DialogTitle';
+import LinearProgress from '@mui/material/LinearProgress';
+import Stepper from '@mui/material/Stepper';
+import Step from '@mui/material/Step';
+import StepLabel from '@mui/material/StepLabel';
+import ErrorIcon from '@mui/icons-material/Error';
+import Card from '@mui/material/Card';
+import CardHeader from '@mui/material/CardHeader';
+import CardContent from '@mui/material/CardContent';
+import FilterListIcon from '@mui/icons-material/FilterList';
+import Menu from '@mui/material/Menu';
+import IconButton from '@mui/material/IconButton';
+import Badge from '@mui/material/Badge';
+import SettingsIcon from '@mui/icons-material/Settings';
+import { pink, green, red, yellow } from '@mui/material/colors';
+import { ipcRenderer } from 'electron';
+import Stack from '@mui/material/Stack';
 
 type sett =
   | 'trix'
@@ -48,39 +50,49 @@ type sett =
   | 'leverage'
   | 'wallet'
   | 'walletLimit'
+  | 'maLow'
+  | 'maHigh'
+  | 'trs'
+  | 'ampTrs'
+  | 'rsi'
+  | 'rsiHigh'
+  | 'rsiLow';
 
 declare global {
   interface ObjectConstructor {
-    keys<T>(o: T): Array<keyof T>
+    keys<T>(o: T): Array<keyof T>;
   }
 }
 
 export type State = {
-  pair: string
-  start: number
-  end: number
-  strategy: string
-  history: string
-  sett: { [x in sett]: number }
-  errors?: { [x in sett]?: boolean }
-  loading: boolean
-  loadingText?: string
-  steps?: string[]
-  step?: number
-  progress?: number
-  result?: any
-  error?: string
-  all?: number
-  dataStart?: number
-  dataEnd?: number
-  startWork?: number
-  anchor?: HTMLElement
-  filter?: 'profit' | 'loss'
-}
+  pair: string;
+  start: number;
+  end: number;
+  strategy: string;
+  history: string;
+  sett: { [x in sett]: number };
+  errors?: { [x in sett]?: boolean };
+  loading: boolean;
+  loadingText?: string;
+  steps?: string[];
+  step?: number;
+  progress?: number;
+  result?: any;
+  error?: string;
+  all?: number;
+  dataStart?: number;
+  dataEnd?: number;
+  startWork?: number;
+  anchor?: HTMLElement;
+  filter?: 'profit' | 'loss';
+};
 
 const translate = {
   trix: 'TRIX',
+  ema: 'EMA',
+  'ema+rsi': 'EMA+RSI',
   sma: 'SMA',
+  'sma+rsi': 'SMA+RSI',
   upper: 'Верхня межа',
   lower: 'Нижня межа',
   candle: 'Період свічки',
@@ -90,19 +102,28 @@ const translate = {
   leverage: 'Плече',
   wallet: 'Гаманець',
   walletLimit: 'Ліміт гаманця',
-}
+  maLow: 'MA низька',
+  maHigh: 'МА висока',
+  trs: 'Поріг',
+  ampTrs: 'Амплітуда свічки',
+  rsi: 'Період RSI',
+  rsiHigh: 'Верхній RSI',
+  rsiLow: 'Нижній RSI',
+};
 
 class Index extends React.Component<{}, State> {
-  private pairs: string[]
-  private histories: string[]
-  private math: {
-    round: (num: number, precision?: number, down?: boolean) => number
-  }
-  private time: {
-    format: (time: number) => string
-  }
+  private pairs: string[];
+  private histories: string[];
+  private math: MathHelper;
+  private time: Time;
+  private strategies: string[];
+  private visible: {
+    strategy: string;
+    fields: string[];
+  }[];
+  private commonFileds: string[];
   constructor({}) {
-    super({})
+    super({});
     this.pairs = [
       'ADAUSDT',
       'BNBUSDT',
@@ -116,8 +137,9 @@ class Index extends React.Component<{}, State> {
       'ETHUSDT',
       'SOLUSDT',
       'XRPUSDT',
-    ]
-    this.histories = ['2c', '3c']
+    ];
+    this.strategies = ['trix', 'ema+rsi', 'ema', 'sma+rsi', 'sma'];
+    this.histories = ['2c', '3c'];
     this.state = {
       pair: 'ADAUSDT',
       start: new Date().getTime() - 24 * 60 * 60 * 1000,
@@ -125,6 +147,13 @@ class Index extends React.Component<{}, State> {
       strategy: 'trix',
       history: '3c',
       sett: {
+        maLow: 6,
+        maHigh: 19,
+        trs: 0.03,
+        rsi: 7,
+        rsiHigh: 50,
+        rsiLow: 50,
+        ampTrs: 0,
         trix: 2,
         sma: 21,
         upper: 0.259,
@@ -148,63 +177,64 @@ class Index extends React.Component<{}, State> {
         'Результат',
       ],
       step: 0,
-    }
-    this.math = {
-      round: (num: number, precision = 2, down = false) => {
-        if (down) {
-          return Number(
-            Math.floor(Number(num + 'e' + precision)) + 'e-' + precision
-          )
-        }
-        return Number(
-          Math.round(Number(num + 'e' + precision)) + 'e-' + precision
-        )
+    };
+    this.math = new MathHelper();
+    this.time = new Time();
+    this.handleChangeSelect = this.handleChangeSelect.bind(this);
+    this.handleChangeDate = this.handleChangeDate.bind(this);
+    this.handleChangeText = this.handleChangeText.bind(this);
+    this.closeDialog = this.closeDialog.bind(this);
+    this.startLoading = this.startLoading.bind(this);
+    this.saveData = this.saveData.bind(this);
+    this.openMenu = this.openMenu.bind(this);
+    this.closeMenu = this.closeMenu.bind(this);
+    this.setFilter = this.setFilter.bind(this);
+    this.showResult = this.showResult.bind(this);
+    this.visible = [
+      {
+        strategy: 'trix',
+        fields: ['trix', 'sma', 'upper', 'lower'],
       },
-    }
-    this.time = {
-      format: (time: number) => {
-        return new Intl.DateTimeFormat('uk', {
-          day: 'numeric',
-          month: 'short',
-          hour: 'numeric',
-          minute: 'numeric',
-          second: 'numeric',
-          timeZone: 'Europe/Kiev',
-        }).format(new Date(time))
+      {
+        strategy: 'ema',
+        fields: ['maLow', 'maHigh', 'trs', 'ampTrs'],
       },
-    }
-    this.handleChangeSelect = this.handleChangeSelect.bind(this)
-    this.handleChangeDate = this.handleChangeDate.bind(this)
-    this.handleChangeText = this.handleChangeText.bind(this)
-    this.closeDialog = this.closeDialog.bind(this)
-    this.startLoading = this.startLoading.bind(this)
-    this.saveData = this.saveData.bind(this)
-    this.openMenu = this.openMenu.bind(this)
-    this.closeMenu = this.closeMenu.bind(this)
-    this.setFilter = this.setFilter.bind(this)
+      {
+        strategy: 'sma',
+        fields: ['maLow', 'maHigh', 'trs', 'ampTrs'],
+      },
+      {
+        strategy: 'sma+rsi',
+        fields: ['maLow', 'maHigh', 'trs', 'ampTrs', 'rsi', 'rsiHigh', 'rsiLow'],
+      },
+      {
+        strategy: 'ema+rsi',
+        fields: ['maLow', 'maHigh', 'trs', 'ampTrs', 'rsi', 'rsiHigh', 'rsiLow'],
+      },
+    ];
+    this.commonFileds = ['candle', 'tp', 'sl', 'tsl', 'leverage', 'wallet', 'walletLimit'];
   }
   componentDidMount() {
-    ipcRenderer.on(
-      'loaderEvent',
-      (_e, data: { text: string; step: number; progress?: number }) =>
-        this.setState((prev) => ({
-          ...prev,
-          loadingText: data.text,
-          step: data.step,
-          progress: data.progress,
-        }))
-    )
+    ipcRenderer.on('loaderEvent', (_e, data: { text: string; step: number; progress?: number }) =>
+      this.setState((prev) => ({
+        ...prev,
+        loadingText: data.text,
+        step: data.step,
+        progress: data.progress,
+        loading: true,
+      })),
+    );
     ipcRenderer.on(
       'result',
       (
         _e,
         data: {
-          data: State['result']
-          start: number
-          end: number
-          all: number
-          startWork: number
-        }
+          data: State['result'];
+          start: number;
+          end: number;
+          all: number;
+          startWork: number;
+        },
       ) =>
         this.setState((prev) => ({
           ...prev,
@@ -214,45 +244,41 @@ class Index extends React.Component<{}, State> {
           dataStart: data.start,
           dataEnd: data.end,
           startWork: data.startWork,
-        }))
-    )
-    ipcRenderer.on('error', (_e, error: string) =>
-      this.setState((prev) => ({ ...prev, error }))
-    )
-    const storeData = ipcRenderer.sendSync('get-store-data') as
-      | State
-      | undefined
+        })),
+    );
+    ipcRenderer.on('error', (_e, error: string) => this.setState((prev) => ({ ...prev, error })));
+    const storeData = ipcRenderer.sendSync('get-store-data') as State | undefined;
     if (storeData) {
-      this.setState(() => ({ ...storeData }))
+      if (Object.keys(storeData.sett).length < Object.keys(this.state.sett).length) {
+        storeData.sett = { ...this.state.sett, ...storeData.sett };
+      }
+      this.setState(() => ({ ...storeData }));
     } else {
-      this.saveData()
+      this.saveData();
     }
   }
   saveData() {
-    const toSave = { ...this.state }
-    delete toSave.loadingText
-    delete toSave.step
-    delete toSave.steps
-    delete toSave.progress
-    delete toSave.result
-    delete toSave.error
-    delete toSave.all
-    delete toSave.dataStart
-    delete toSave.dataEnd
-    delete toSave.startWork
-    delete toSave.anchor
-    delete toSave.filter
-    ipcRenderer.send('store-data', { ...toSave })
+    const toSave = { ...this.state };
+    delete toSave.loadingText;
+    delete toSave.step;
+    delete toSave.steps;
+    delete toSave.progress;
+    delete toSave.result;
+    delete toSave.error;
+    delete toSave.all;
+    delete toSave.dataStart;
+    delete toSave.dataEnd;
+    delete toSave.startWork;
+    delete toSave.anchor;
+    delete toSave.filter;
+    ipcRenderer.send('store-data', { ...toSave });
   }
-  handleChangeSelect(select: 'history' | 'pair', value: string) {
-    this.setState((prev) => ({ ...prev, [select]: value }), this.saveData)
+  handleChangeSelect(select: 'history' | 'pair' | 'strategy', value: string) {
+    this.setState((prev) => ({ ...prev, [select]: value, result: undefined }), this.saveData);
   }
   handleChangeDate(type: 'start' | 'end', value: number | null) {
     if (value) {
-      this.setState(
-        (prev) => ({ ...prev, [type]: new Date(value).getTime() }),
-        this.saveData
-      )
+      this.setState((prev) => ({ ...prev, [type]: new Date(value).getTime(), result: undefined }), this.saveData);
     }
   }
   handleChangeText(field: keyof State['sett'], value: string) {
@@ -267,50 +293,51 @@ class Index extends React.Component<{}, State> {
           ...prev.errors,
           [field]: false,
         },
+        result: undefined,
       }),
-      this.saveData
-    )
+      this.saveData,
+    );
   }
   openMenu(event: React.MouseEvent<HTMLElement>) {
     //@ts-ignore
-    this.setState((prev) => ({ ...prev, anchor: event.target }))
+    this.setState((prev) => ({ ...prev, anchor: event.target }));
   }
   closeMenu() {
-    this.setState((prev) => ({ ...prev, anchor: undefined }))
+    this.setState((prev) => ({ ...prev, anchor: undefined }));
   }
   closeDialog() {
-    ipcRenderer.send('cancel')
+    ipcRenderer.send('cancel');
     this.setState((prev) => ({
       ...prev,
       loading: false,
-    }))
+    }));
   }
   startLoading() {
-    const sett = { ...this.state.sett }
-    let send = true
+    const sett = { ...this.state.sett };
+    let send = true;
     Object.keys(sett).map((item) => {
       if (isNaN(parseFloat(`${sett[item]}`))) {
-        send = false
+        send = false;
         //@ts-ignore
         this.setState((prev) => {
-          const st = prev
+          const st = prev;
           if (st.errors) {
             return {
               ...prev,
               errors: { ...prev.errors, [item]: true },
-            }
+            };
           } else {
             return {
               ...prev,
               errors: { [item]: true },
-            }
+            };
           }
-        })
+        });
       }
-      sett[item] = parseFloat(`${sett[item]}`)
-    })
+      sett[item] = parseFloat(`${sett[item]}`);
+    });
     if (send) {
-      ipcRenderer.send('data', { ...this.state, sett })
+      ipcRenderer.send('data', { ...this.state, sett });
       this.setState((prev) => ({
         ...prev,
         loading: true,
@@ -324,14 +351,20 @@ class Index extends React.Component<{}, State> {
         progress: undefined,
         filter: undefined,
         anchor: undefined,
-      }))
+      }));
     }
   }
   setFilter(filter?: 'profit' | 'loss') {
-    this.setState((prev) => ({ ...prev, filter, anchor: undefined }))
+    this.setState((prev) => ({ ...prev, filter, anchor: undefined }));
+  }
+  showResult() {
+    this.setState((prev) => ({
+      ...prev,
+      loading: true,
+    }));
   }
   openDialogDir() {
-    ipcRenderer.send('dirDialog')
+    ipcRenderer.send('dirDialog');
   }
   render() {
     const {
@@ -353,7 +386,6 @@ class Index extends React.Component<{}, State> {
         errors,
         dataStart,
         dataEnd,
-        sett: { wallet },
         startWork,
         anchor,
         filter,
@@ -367,28 +399,24 @@ class Index extends React.Component<{}, State> {
       openMenu,
       setFilter,
       openDialogDir,
+      showResult,
       pairs,
       histories,
       time,
       math,
-    } = this
-    let probProfit = 0
-    let avgProfit = 0
-    let avgLoss = 0
-    let probLoss = 0
+      strategies,
+      visible,
+      commonFileds,
+    } = this;
+    let probProfit = 0;
+    let avgProfit = 0;
+    let avgLoss = 0;
+    let probLoss = 0;
     if (result) {
-      probProfit =
-        math.round((result.profit.buy + result.profit.sell) / result.all, 2) ||
-        0
-      avgProfit =
-        math.round(
-          result.profit.amount / (result.profit.buy + result.profit.sell)
-        ) || 0
-      avgLoss =
-        -math.round(
-          result.loss.amount / (result.loss.buy + result.loss.sell)
-        ) || 0
-      probLoss = result.all > 0 ? math.round(1 - probProfit, 2) || 0 : 0
+      probProfit = math.round((result.profit.buy + result.profit.sell) / result.all, 2) || 0;
+      avgProfit = math.round(result.profit.amount / (result.profit.buy + result.profit.sell)) || 0;
+      avgLoss = -math.round(result.loss.amount / (result.loss.buy + result.loss.sell)) || 0;
+      probLoss = result.all > 0 ? math.round(1 - probProfit, 2) || 0 : 0;
     }
     return (
       <>
@@ -397,15 +425,15 @@ class Index extends React.Component<{}, State> {
         </Head>
         <Dialog
           open={loading}
-          aria-labelledby='alert-dialog-title'
-          aria-describedby='alert-dialog-description'
+          aria-labelledby="alert-dialog-title"
+          aria-describedby="alert-dialog-description"
           fullScreen
         >
-          <DialogTitle id='alert-dialog-title'>Симуляція в процесі</DialogTitle>
+          <DialogTitle id="alert-dialog-title">Симуляція в процесі</DialogTitle>
           <DialogContent dividers>
             {error ? (
               <DialogContentText
-                id='alert-dialog-description'
+                id="alert-dialog-description"
                 sx={{
                   width: '100%',
                   marginTop: 3,
@@ -436,11 +464,9 @@ class Index extends React.Component<{}, State> {
                         display: 'flex',
                       }}
                     >
-                      <Card
-                        sx={{ maxWidth: '50%', flexGrow: 1, marginRight: 2 }}
-                      >
+                      <Card sx={{ maxWidth: '50%', flexGrow: 1, marginRight: 2 }}>
                         <CardHeader
-                          title='Результат'
+                          title="Результат"
                           subheader={`Проведено з${' '}
                     ${time.format(dataStart ? dataStart : start)} по${' '}
                     ${time.format(dataEnd ? dataEnd : end)} на основі${' '}
@@ -456,7 +482,7 @@ class Index extends React.Component<{}, State> {
                           >
                             {result.net.toLocaleString()} $
                           </Typography>{' '}
-                          з {wallet} $
+                          з {sett.wallet} $
                           <br />
                           Максимальне падіння:{' '}
                           <Typography
@@ -476,64 +502,40 @@ class Index extends React.Component<{}, State> {
                           Очікування:{' '}
                           <Typography
                             sx={{
-                              color:
-                                probProfit * avgProfit - probLoss * avgLoss > 0
-                                  ? green[500]
-                                  : red[500],
+                              color: probProfit * avgProfit - probLoss * avgLoss > 0 ? green[500] : red[500],
                               display: 'inline-block',
                             }}
                           >
-                            {(
-                              math.round(
-                                probProfit * avgProfit - probLoss * avgLoss
-                              ) || 0
-                            ).toLocaleString()}{' '}
-                            $
+                            {(math.round(probProfit * avgProfit - probLoss * avgLoss) || 0).toLocaleString()} $
                           </Typography>
                           <br />
                           Позицій: {result.all.toLocaleString()}
                           <br />
-                          Прибуткових позицій:{' '}
-                          {result.profit.buy + result.profit.sell} (продажа -{' '}
-                          {result.profit.sell}, покупка - {result.profit.buy})
+                          Прибуткових позицій: {result.profit.buy + result.profit.sell} (продажа - {result.profit.sell},
+                          покупка - {result.profit.buy})
                           <br />
-                          Збиткових позицій:{' '}
-                          {result.loss.buy + result.loss.sell} (продажа -{' '}
-                          {result.loss.sell}, покупка - {result.loss.buy})
+                          Збиткових позицій: {result.loss.buy + result.loss.sell} (продажа - {result.loss.sell}, покупка
+                          - {result.loss.buy})
                           <br />
-                          Загальний профіт:{' '}
-                          {result.profit.amount.toLocaleString()} $ (продажа -{' '}
-                          {result.profit.sellAmount.toLocaleString()} $, покупка
-                          - {result.profit.buyAmount.toLocaleString()} $)
+                          Загальний профіт: {result.profit.amount.toLocaleString()} $ (продажа -{' '}
+                          {result.profit.sellAmount.toLocaleString()} $, покупка -{' '}
+                          {result.profit.buyAmount.toLocaleString()} $)
                           <br />
-                          Загальний збиток:{' '}
-                          {result.loss.amount.toLocaleString()} $ (продажа -{' '}
+                          Загальний збиток: {result.loss.amount.toLocaleString()} $ (продажа -{' '}
                           {result.loss.sellAmount.toLocaleString()} $, покупка -{' '}
                           {result.loss.buyAmount.toLocaleString()} $)
                           <br />
-                          Вирогідність профіту:{' '}
-                          {math.round(probProfit * 100, 0)}%
+                          Вирогідність профіту: {math.round(probProfit * 100, 0)}%
                           <br />
                           Середній профіт: {avgProfit.toLocaleString()} $
                           <br />
                           Середній збиток: {avgLoss.toLocaleString()} $
                           <br />
                           Точність лонгів:{' '}
-                          {math.round(
-                            (result.profit.buy /
-                              (result.profit.buy + result.loss.buy)) *
-                              100,
-                            0
-                          ) || 0}
+                          {math.round((result.profit.buy / (result.profit.buy + result.loss.buy)) * 100, 0) || 0}
                           %<br />
                           Точність шортів:{' '}
-                          {math.round(
-                            (result.profit.sell /
-                              (result.profit.sell + result.loss.sell)) *
-                              100,
-                            0
-                          ) || 0}
-                          %
+                          {math.round((result.profit.sell / (result.profit.sell + result.loss.sell)) * 100, 0) || 0}%
                         </CardContent>
                       </Card>
                       <Card
@@ -546,14 +548,10 @@ class Index extends React.Component<{}, State> {
                         }}
                       >
                         <CardHeader
-                          title='Позиції'
+                          title="Позиції"
                           action={
                             <IconButton onClick={openMenu}>
-                              <Badge
-                                color='secondary'
-                                variant='dot'
-                                invisible={!Boolean(filter)}
-                              >
+                              <Badge color="secondary" variant="dot" invisible={!Boolean(filter)}>
                                 <FilterListIcon />
                               </Badge>
                             </IconButton>
@@ -572,10 +570,7 @@ class Index extends React.Component<{}, State> {
                             horizontal: 'right',
                           }}
                         >
-                          <MenuItem
-                            onClick={() => setFilter()}
-                            selected={!Boolean(filter)}
-                          >
+                          <MenuItem onClick={() => setFilter()} selected={!Boolean(filter)}>
                             Всі
                           </MenuItem>
                           <MenuItem
@@ -600,33 +595,24 @@ class Index extends React.Component<{}, State> {
                               .filter((pos: any) => {
                                 if (filter) {
                                   if (filter === 'profit') {
-                                    return pos.net > 0
+                                    return pos.net > 0;
                                   }
                                   if (filter === 'loss') {
-                                    return pos.net <= 0
+                                    return pos.net <= 0;
                                   }
                                 }
-                                return true
+                                return true;
                               })
                               .map((pos: any) => (
-                                <Card
-                                  key={pos.id}
-                                  raised
-                                  sx={{ marginBottom: 2 }}
-                                >
+                                <Card key={pos.id} raised sx={{ marginBottom: 2 }}>
                                   <CardContent>
-                                    Сторона:{' '}
-                                    {pos.type === 'SELL'
-                                      ? 'продажа'
-                                      : 'покупка'}
+                                    Сторона: {pos.type === 'SELL' ? 'продажа' : 'покупка'}
                                     <br />
                                     Ціна відкриття: {pos.price.toLocaleString()}
                                     <br />
-                                    Ціна закриття:{' '}
-                                    {pos.closePrice.toLocaleString()}
+                                    Ціна закриття: {pos.closePrice.toLocaleString()}
                                     <br />
-                                    Вартість позиції:{' '}
-                                    {pos.cost.toLocaleString()} $
+                                    Вартість позиції: {pos.cost.toLocaleString()} $
                                     <br />
                                     Кількість: {pos.amount.toLocaleString()}
                                     <br />
@@ -637,8 +623,7 @@ class Index extends React.Component<{}, State> {
                                     Прибуток:{' '}
                                     <Typography
                                       sx={{
-                                        color:
-                                          pos.net > 0 ? green[500] : red[500],
+                                        color: pos.net > 0 ? green[500] : red[500],
                                         display: 'inline-block',
                                       }}
                                     >
@@ -652,30 +637,23 @@ class Index extends React.Component<{}, State> {
                     </Box>
                     <Typography sx={{ marginTop: 2 }}>
                       Старт виконання тесту: {time.format(startWork || start)}
-                      <br /> Кінець виконання тесту:{' '}
-                      {time.format(new Date().getTime())}{' '}
+                      <br /> Кінець виконання тесту: {time.format(new Date().getTime())}{' '}
                     </Typography>
                   </>
                 ) : (
                   <>
                     <DialogContentText
-                      id='alert-dialog-description'
+                      id="alert-dialog-description"
                       sx={{
                         width: '100%',
                         marginTop: 3,
                         color: 'text.primary',
                       }}
                     >
-                      {loadingText ? (
-                        <div
-                          dangerouslySetInnerHTML={{ __html: loadingText }}
-                        />
-                      ) : (
-                        'Підготовка...'
-                      )}
+                      {loadingText ? <div dangerouslySetInnerHTML={{ __html: loadingText }} /> : 'Підготовка...'}
                     </DialogContentText>
                     <LinearProgress
-                      color='secondary'
+                      color="secondary"
                       value={progress}
                       variant={progress ? 'determinate' : 'indeterminate'}
                     />
@@ -688,13 +666,9 @@ class Index extends React.Component<{}, State> {
             <Button onClick={closeDialog}>Закрити</Button>
           </DialogActions>
         </Dialog>
-        <AppBar position='static'>
+        <AppBar position="static">
           <Toolbar>
-            <Typography
-              variant='subtitle1'
-              component='div'
-              sx={{ flexGrow: 1 }}
-            >
+            <Typography variant="subtitle1" component="div" sx={{ flexGrow: 1 }}>
               Симуляція бота на заданому проміжку часу
             </Typography>
             <IconButton onClick={openDialogDir}>
@@ -711,12 +685,12 @@ class Index extends React.Component<{}, State> {
           }}
         >
           <FormControl sx={{ width: 200 }}>
-            <InputLabel id='pair'>Пара</InputLabel>
+            <InputLabel id="pair">Пара</InputLabel>
             <Select
-              labelId='pair'
-              id='pair-select'
+              labelId="pair"
+              id="pair-select"
               value={pair}
-              label='пара'
+              label="пара"
               onChange={(e) => handleChangeSelect('pair', e.target.value)}
             >
               {pairs.map((item) => (
@@ -729,53 +703,56 @@ class Index extends React.Component<{}, State> {
           <LocalizationProvider dateAdapter={AdapterDateFns} locale={ukLocale}>
             <Box sx={{ display: 'flex', width: 600 }}>
               <DateTimePicker
-                renderInput={(props) => (
-                  <TextField {...props} sx={{ marginTop: 2, marginRight: 2 }} />
-                )}
-                label='Початок періоду'
+                renderInput={(props) => <TextField {...props} sx={{ marginTop: 2, marginRight: 2 }} />}
+                label="Початок періоду"
                 value={start}
                 onChange={(newValue) => {
-                  handleChangeDate('start', newValue)
+                  handleChangeDate('start', newValue);
                 }}
                 maxDate={end}
                 minDate={new Date().getTime() - 6 * 30 * 24 * 60 * 60 * 1000}
-                mask='__.__.____ __:__'
+                mask="__.__.____ __:__"
               />
               <DateTimePicker
-                renderInput={(props) => (
-                  <TextField {...props} sx={{ marginTop: 2 }} />
-                )}
-                label='Кінець періоду'
+                renderInput={(props) => <TextField {...props} sx={{ marginTop: 2 }} />}
+                label="Кінець періоду"
                 value={end}
                 onChange={(newValue) => {
-                  handleChangeDate('end', newValue)
+                  handleChangeDate('end', newValue);
                 }}
                 maxDate={new Date().getTime()}
                 minDate={start}
-                mask='__.__.____ __:__'
+                mask="__.__.____ __:__"
               />
             </Box>
           </LocalizationProvider>
           <Box>
             <FormControl sx={{ width: 200, marginTop: 2, marginRight: 2 }}>
-              <InputLabel id='strategy'>Стратегія</InputLabel>
+              <InputLabel id="strategy">Стратегія</InputLabel>
               <Select
-                labelId='strategy'
-                id='startegy-select'
+                labelId="strategy"
+                id="startegy-select"
                 value={strategy}
-                label='стратегія'
-                disabled
+                label="стратегія"
+                onChange={(e) => handleChangeSelect('strategy', e.target.value)}
               >
-                <MenuItem value={strategy}>TRIX</MenuItem>
+                {strategies.map((item) => (
+                  <MenuItem key={item} value={item}>
+                    {
+                      //@ts-ignore
+                      translate[item]
+                    }
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
             <FormControl sx={{ width: 200, marginTop: 2 }}>
-              <InputLabel id='history'>Вікно історії</InputLabel>
+              <InputLabel id="history">Вікно історії</InputLabel>
               <Select
-                labelId='history'
-                id='history-select'
+                labelId="history"
+                id="history-select"
                 value={history}
-                label='вікно історії'
+                label="вікно історії"
                 onChange={(e) => handleChangeSelect('history', e.target.value)}
               >
                 {histories.map((item, ind) => (
@@ -787,37 +764,49 @@ class Index extends React.Component<{}, State> {
             </FormControl>
           </Box>
           <Grid container spacing={2} sx={{ marginTop: 2, maxWidth: 912 }}>
-            {Object.keys(sett).map((item, ind) => (
-              <Grid
-                item
-                lg={3}
-                md={3}
-                sm={3}
-                sx={{ width: 216 }}
-                key={`${item}-${ind}`}
-              >
-                <TextField
-                  label={translate[item]}
-                  value={sett[item]}
-                  error={errors && errors[item]}
-                  //@ts-ignore
-                  onChange={(e) => handleChangeText(item, e.target.value)}
-                />
-              </Grid>
-            ))}
+            {Object.keys(sett).map((item, ind) => {
+              const vInd = visible.findIndex((vItem) => vItem.strategy === strategy);
+              if (vInd !== -1) {
+                if (visible[vInd].fields.includes(item) || commonFileds.includes(item)) {
+                  return (
+                    <Grid item lg={3} md={3} sm={3} sx={{ width: 216 }} key={`${item}-${ind}`}>
+                      <TextField
+                        label={translate[item]}
+                        value={sett[item]}
+                        error={errors && errors[item]}
+                        //@ts-ignore
+                        onChange={(e) => handleChangeText(item, e.target.value)}
+                      />
+                    </Grid>
+                  );
+                }
+              }
+            })}
           </Grid>
-          <Button
-            variant='contained'
-            type='submit'
-            sx={{ width: 200, marginTop: 2, height: 48 }}
-            onClick={startLoading}
-          >
-            Старт
-          </Button>
+          <Stack direction="row">
+            <Button
+              variant="contained"
+              type="submit"
+              sx={{ width: 200, marginTop: 2, height: 48 }}
+              onClick={startLoading}
+            >
+              Старт
+            </Button>
+            {result && (
+              <Button
+                variant="contained"
+                type="submit"
+                sx={{ width: 200, marginLeft: 2, marginTop: 2, height: 48 }}
+                onClick={showResult}
+              >
+                результат
+              </Button>
+            )}
+          </Stack>
         </Box>
       </>
-    )
+    );
   }
 }
 
-export default Index
+export default Index;

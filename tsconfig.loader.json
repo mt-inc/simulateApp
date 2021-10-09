@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "commonjs",
+    "skipLibCheck": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "./helper",
+    "jsx": "preserve"
+  },
+  "files": ["./helper/loader.ts"],
+  "exclude": ["node_modules", ".yarn", "dist", "app", "renderer", "resource"]
+}

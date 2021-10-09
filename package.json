@@ -2,14 +2,16 @@
   "private": true,
   "name": "@mt-inc/simulate-app",
   "description": "Simulate App for MT Inc. Project",
-  "version": "1.0.9",
+  "version": "1.1.0",
   "author": "Maksym Shamko <max.shamko25@gmail.com>",
   "main": "app/background.js",
   "scripts": {
     "dev": "nextron",
-    "build:linux": "nextron build --linux",
-    "build:win": "nextron build --win --x64",
-    "build:all": "nextron build --linux --win",
+    "tsc": "tsc -p tsconfig.loader.json",
+    "end": "rm -rf app && rm ./helper/loader.js",
+    "build:linux": "yarn tsc && nextron build --linux && yarn end",
+    "build:win": "yarn tsc && nextron build --win --x64 && yarn end",
+    "build:all": "yarn tsc && nextron build --linux --win && yarn end",
     "postinstall": "electron-builder install-app-deps",
     "push": "git push origin master",
     "pull": "git pull origin master",
@@ -45,6 +47,7 @@
     "react-dom": "^17.0.2",
     "sha256-file": "^1.0.0",
     "ts-node": "^10.2.1",
+    "tsc": "^2.0.3",
     "typescript": "^4.4.3"
   }
 }

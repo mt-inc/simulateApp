@@ -7,3 +7,4 @@ dist
 .yarnrc.yml
 yarn.lock
 .pnp.cjs
+loader.js
