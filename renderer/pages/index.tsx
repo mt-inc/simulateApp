@@ -37,6 +37,35 @@ import SettingsIcon from '@mui/icons-material/Settings';
 import { pink, green, red, yellow } from '@mui/material/colors';
 import { ipcRenderer } from 'electron';
 import Stack from '@mui/material/Stack';
+import Switch from '@mui/material/Switch';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import dynamic from 'next/dynamic';
+import ua from 'apexcharts/dist/locales/ua.json';
+import type { ApexOptions } from 'apexcharts';
+interface Props {
+  type?:
+    | 'line'
+    | 'area'
+    | 'bar'
+    | 'histogram'
+    | 'pie'
+    | 'donut'
+    | 'radialBar'
+    | 'scatter'
+    | 'bubble'
+    | 'heatmap'
+    | 'treemap'
+    | 'boxPlot'
+    | 'candlestick'
+    | 'radar'
+    | 'polarArea'
+    | 'rangeBar';
+  series?: Array<any>;
+  width?: string | number;
+  height?: string | number;
+  options?: ApexOptions;
+  [key: string]: any;
+}
 
 type sett =
   | 'trix'
@@ -85,6 +114,9 @@ export type State = {
   startWork?: number;
   anchor?: HTMLElement;
   filter?: 'profit' | 'loss';
+  candles?: number[][];
+  endTest?: number;
+  usePlot?: boolean;
 };
 
 const translate = {
@@ -122,6 +154,7 @@ class Index extends React.Component<{}, State> {
     fields: string[];
   }[];
   private commonFileds: string[];
+  private Chart?: React.ComponentType<Props>;
   constructor({}) {
     super({});
     this.pairs = [
@@ -183,6 +216,7 @@ class Index extends React.Component<{}, State> {
     this.handleChangeSelect = this.handleChangeSelect.bind(this);
     this.handleChangeDate = this.handleChangeDate.bind(this);
     this.handleChangeText = this.handleChangeText.bind(this);
+    this.handleChangeSwitch = this.handleChangeSwitch.bind(this);
     this.closeDialog = this.closeDialog.bind(this);
     this.startLoading = this.startLoading.bind(this);
     this.saveData = this.saveData.bind(this);
@@ -234,6 +268,7 @@ class Index extends React.Component<{}, State> {
           end: number;
           all: number;
           startWork: number;
+          candles: number[][];
         },
       ) =>
         this.setState((prev) => ({
@@ -244,6 +279,8 @@ class Index extends React.Component<{}, State> {
           dataStart: data.start,
           dataEnd: data.end,
           startWork: data.startWork,
+          candles: data.candles,
+          endTest: new Date().getTime(),
         })),
     );
     ipcRenderer.on('error', (_e, error: string) => this.setState((prev) => ({ ...prev, error })));
@@ -251,11 +288,13 @@ class Index extends React.Component<{}, State> {
     if (storeData) {
       if (Object.keys(storeData.sett).length < Object.keys(this.state.sett).length) {
         storeData.sett = { ...this.state.sett, ...storeData.sett };
+        storeData.usePlot = storeData.usePlot || false;
       }
       this.setState(() => ({ ...storeData }));
     } else {
       this.saveData();
     }
+    this.Chart = dynamic(() => import('react-apexcharts'), { ssr: false });
   }
   saveData() {
     const toSave = { ...this.state };
@@ -271,14 +310,19 @@ class Index extends React.Component<{}, State> {
     delete toSave.startWork;
     delete toSave.anchor;
     delete toSave.filter;
+    delete toSave.candles;
+    delete toSave.endTest;
     ipcRenderer.send('store-data', { ...toSave });
   }
   handleChangeSelect(select: 'history' | 'pair' | 'strategy', value: string) {
-    this.setState((prev) => ({ ...prev, [select]: value, result: undefined }), this.saveData);
+    this.setState((prev) => ({ ...prev, [select]: value, result: undefined, candles: undefined }), this.saveData);
   }
   handleChangeDate(type: 'start' | 'end', value: number | null) {
     if (value) {
-      this.setState((prev) => ({ ...prev, [type]: new Date(value).getTime(), result: undefined }), this.saveData);
+      this.setState(
+        (prev) => ({ ...prev, [type]: new Date(value).getTime(), result: undefined, candles: undefined }),
+        this.saveData,
+      );
     }
   }
   handleChangeText(field: keyof State['sett'], value: string) {
@@ -294,6 +338,16 @@ class Index extends React.Component<{}, State> {
           [field]: false,
         },
         result: undefined,
+        candles: undefined,
+      }),
+      this.saveData,
+    );
+  }
+  handleChangeSwitch(field = 'usePlot', value: boolean) {
+    this.setState(
+      (prev) => ({
+        ...prev,
+        [field]: value,
       }),
       this.saveData,
     );
@@ -351,6 +405,7 @@ class Index extends React.Component<{}, State> {
         progress: undefined,
         filter: undefined,
         anchor: undefined,
+        candles: undefined,
       }));
     }
   }
@@ -389,10 +444,14 @@ class Index extends React.Component<{}, State> {
         startWork,
         anchor,
         filter,
+        candles,
+        endTest,
+        usePlot,
       },
       handleChangeSelect,
       handleChangeDate,
       handleChangeText,
+      handleChangeSwitch,
       closeDialog,
       startLoading,
       closeMenu,
@@ -407,6 +466,7 @@ class Index extends React.Component<{}, State> {
       strategies,
       visible,
       commonFileds,
+      Chart,
     } = this;
     let probProfit = 0;
     let avgProfit = 0;
@@ -418,6 +478,103 @@ class Index extends React.Component<{}, State> {
       avgLoss = -math.round(result.loss.amount / (result.loss.buy + result.loss.sell)) || 0;
       probLoss = result.all > 0 ? math.round(1 - probProfit, 2) || 0 : 0;
     }
+    const d = {
+      series: [] as { name?: string; type: 'line' | 'area'; data: (number | null)[] }[],
+      options: {
+        grid: {
+          show: false,
+        },
+        annotations: {
+          xaxis: [] as {
+            x: number;
+            x2: number;
+            fillColor: string;
+          }[],
+        },
+        chart: {
+          height: 350,
+          id: 'candles',
+          locales: [ua],
+          defaultLocale: 'ua',
+          toolbar: {
+            tools: {
+              download: false,
+            },
+          },
+          zoom: {
+            type: 'x' as 'x',
+            enabled: true,
+            autoScaleYaxis: true,
+          },
+        },
+        xaxis: {
+          type: 'datetime' as 'datetime',
+          labels: {
+            style: {
+              colors: '#e7e7e7',
+            },
+          },
+          tooltip: {
+            enabled: false,
+          },
+        },
+        yaxis: {
+          tooltip: {
+            enabled: false,
+          },
+          labels: {
+            style: {
+              colors: ['#e7e7e7'],
+            },
+          },
+        },
+        tooltip: {
+          theme: 'dark' as 'dark',
+          x: {
+            format: 'dd.MM.yy HH:mm:ss',
+          },
+        },
+        stroke: {
+          curve: 'smooth' as 'smooth',
+          lineCap: 'round' as 'round',
+          width: 1.75,
+        },
+        labels: [] as string[],
+      },
+    };
+    if (candles && usePlot) {
+      const norm = candles.length > 1000 ? Math.floor((candles.length - 1) / 1000) : 1;
+      const offset = -new Date().getTimezoneOffset() * 60 * 1000;
+      const x: number[] = [];
+      const y: number[] = [];
+      candles.map((c, ind) => {
+        if (ind % norm === 0 || ind === 0) {
+          x.push(c[4] + offset);
+          y.push(c[1]);
+          return;
+        }
+      });
+      d.series[0] = {
+        name: 'ціна закриття',
+        type: 'line',
+        data: y,
+      };
+      d.options.labels = x.map((item) => `${new Date(item)}`);
+      if (result && result.hist && result.hist.length > 0) {
+        result.hist
+          .filter((pos: any) => (filter ? (filter === 'loss' ? pos.net <= 0 : pos.net > 0) : true))
+          .map((pos: any) => {
+            d.options.annotations.xaxis.push({
+              x: pos.time + offset,
+              x2: pos.closeTime + offset,
+              fillColor: pos.net > 0 ? green['A700'] : red['A700'],
+            });
+          });
+      }
+    }
+    const startDate = new Date();
+    startDate.setMonth(startDate.getMonth() - 8);
+    startDate.setDate(1);
     return (
       <>
         <Head>
@@ -635,9 +792,24 @@ class Index extends React.Component<{}, State> {
                         </CardContent>
                       </Card>
                     </Box>
+                    <FormControlLabel
+                      control={
+                        <Switch checked={usePlot} onChange={(e) => handleChangeSwitch('usePlot', e.target.checked)} />
+                      }
+                      label={`${usePlot ? 'Будувати графік' : 'Не будувати графік'}`}
+                      sx={{ marginTop: 2 }}
+                    />
+                    {usePlot && candles && candles.length > 0 && Chart && (
+                      <Card sx={{ width: 'calc(100% - 16px)', marginTop: 2 }}>
+                        <CardHeader title="Графік" />
+                        <CardContent>
+                          <Chart options={d.options} series={d.series} type="line" height={350} />
+                        </CardContent>
+                      </Card>
+                    )}
                     <Typography sx={{ marginTop: 2 }}>
                       Старт виконання тесту: {time.format(startWork || start)}
-                      <br /> Кінець виконання тесту: {time.format(new Date().getTime())}{' '}
+                      <br /> Кінець виконання тесту: {time.format(endTest || new Date().getTime())}{' '}
                     </Typography>
                   </>
                 ) : (
@@ -710,7 +882,7 @@ class Index extends React.Component<{}, State> {
                   handleChangeDate('start', newValue);
                 }}
                 maxDate={end}
-                minDate={new Date().getTime() - 6 * 30 * 24 * 60 * 60 * 1000}
+                minDate={startDate.getTime()}
                 mask="__.__.____ __:__"
               />
               <DateTimePicker

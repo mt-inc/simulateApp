@@ -68,6 +68,7 @@ export class Loader {
   private checksums: string[];
   private loaded: number;
   private startWork: number;
+  private candles: number[][];
   constructor(data: State & { userData: string }) {
     const { userData, ...rest } = data;
     this.data = rest;
@@ -92,6 +93,7 @@ export class Loader {
     this.loaded = 0;
     this.startWork = new Date().getTime();
     this.cancel = false;
+    this.candles = [];
   }
   private sendMessage(data: any) {
     parentPort?.postMessage({ ...data });
@@ -119,7 +121,11 @@ export class Loader {
         fileNames.push(`${pair}-aggTrades-${y}-${m < 10 ? `0${m}` : m}-${D < 10 ? `0${D}` : D}.zip`);
       }
       const existFiles = await this.checkFiles([...fileNames]);
-      if (fileNames.length > existFiles.length && existFiles.length > 0) {
+      if (
+        fileNames.length > existFiles.length &&
+        existFiles.length > 0 &&
+        fileNames[fileNames.length - 1] !== existFiles[existFiles.length - 1]
+      ) {
         const last = existFiles[existFiles.length - 1];
         const splitZip = last.split('.zip')[0];
         const splitDateArr = splitZip.split('-');
@@ -162,7 +168,6 @@ export class Loader {
         });
         await this.unzipFiles(existFiles);
       }
-
       if (api.active) {
         this.sendMessage({
           event: 'loaderEvent',
@@ -457,6 +462,7 @@ export class Loader {
         true,
       );
       const candles = new Candle(sett.candle, (data: number[]) => {
+        this.candles.push(data);
         bot?.work(data, now, positions, undefined, nowTime);
       });
       for (let i = 0; i < files.length; i++) {
@@ -495,6 +501,7 @@ export class Loader {
         end,
         all,
         startWork: this.startWork,
+        candles: this.candles,
       });
     }
   }
