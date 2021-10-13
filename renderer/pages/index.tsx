@@ -34,7 +34,7 @@ import Menu from '@mui/material/Menu';
 import IconButton from '@mui/material/IconButton';
 import Badge from '@mui/material/Badge';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { pink, green, red, yellow } from '@mui/material/colors';
+import { pink, green, red, yellow, grey } from '@mui/material/colors';
 import { ipcRenderer } from 'electron';
 import Stack from '@mui/material/Stack';
 import Switch from '@mui/material/Switch';
@@ -117,6 +117,12 @@ export type State = {
   candles?: number[][];
   endTest?: number;
   usePlot?: boolean;
+  chartMin?: number;
+  chartMax?: number;
+  indicators?: {
+    trix?: number[];
+    sma?: number[];
+  };
 };
 
 const translate = {
@@ -224,6 +230,7 @@ class Index extends React.Component<{}, State> {
     this.closeMenu = this.closeMenu.bind(this);
     this.setFilter = this.setFilter.bind(this);
     this.showResult = this.showResult.bind(this);
+    this.updateChartData = this.updateChartData.bind(this);
     this.visible = [
       {
         strategy: 'trix',
@@ -269,6 +276,10 @@ class Index extends React.Component<{}, State> {
           all: number;
           startWork: number;
           candles: number[][];
+          indicators: {
+            trix: number[];
+            sma: number[];
+          };
         },
       ) =>
         this.setState((prev) => ({
@@ -281,6 +292,7 @@ class Index extends React.Component<{}, State> {
           startWork: data.startWork,
           candles: data.candles,
           endTest: new Date().getTime(),
+          indicators: data.indicators,
         })),
     );
     ipcRenderer.on('error', (_e, error: string) => this.setState((prev) => ({ ...prev, error })));
@@ -312,15 +324,27 @@ class Index extends React.Component<{}, State> {
     delete toSave.filter;
     delete toSave.candles;
     delete toSave.endTest;
+    delete toSave.chartMax;
+    delete toSave.chartMin;
+    delete toSave.indicators;
     ipcRenderer.send('store-data', { ...toSave });
   }
   handleChangeSelect(select: 'history' | 'pair' | 'strategy', value: string) {
-    this.setState((prev) => ({ ...prev, [select]: value, result: undefined, candles: undefined }), this.saveData);
+    this.setState(
+      (prev) => ({ ...prev, [select]: value, result: undefined, candles: undefined, indicators: undefined }),
+      this.saveData,
+    );
   }
   handleChangeDate(type: 'start' | 'end', value: number | null) {
     if (value) {
       this.setState(
-        (prev) => ({ ...prev, [type]: new Date(value).getTime(), result: undefined, candles: undefined }),
+        (prev) => ({
+          ...prev,
+          [type]: new Date(value).getTime(),
+          result: undefined,
+          candles: undefined,
+          indicators: undefined,
+        }),
         this.saveData,
       );
     }
@@ -339,6 +363,7 @@ class Index extends React.Component<{}, State> {
         },
         result: undefined,
         candles: undefined,
+        indicators: undefined,
       }),
       this.saveData,
     );
@@ -406,6 +431,9 @@ class Index extends React.Component<{}, State> {
         filter: undefined,
         anchor: undefined,
         candles: undefined,
+        chartMax: undefined,
+        chartMin: undefined,
+        indicators: undefined,
       }));
     }
   }
@@ -420,6 +448,13 @@ class Index extends React.Component<{}, State> {
   }
   openDialogDir() {
     ipcRenderer.send('dirDialog');
+  }
+  updateChartData(min?: number, max?: number) {
+    this.setState((prev) => ({
+      ...prev,
+      chartMax: max ? Math.floor(max) : undefined,
+      chartMin: min ? Math.floor(min) : undefined,
+    }));
   }
   render() {
     const {
@@ -447,6 +482,9 @@ class Index extends React.Component<{}, State> {
         candles,
         endTest,
         usePlot,
+        chartMax,
+        chartMin,
+        indicators,
       },
       handleChangeSelect,
       handleChangeDate,
@@ -459,6 +497,7 @@ class Index extends React.Component<{}, State> {
       setFilter,
       openDialogDir,
       showResult,
+      updateChartData,
       pairs,
       histories,
       time,
@@ -478,8 +517,9 @@ class Index extends React.Component<{}, State> {
       avgLoss = -math.round(result.loss.amount / (result.loss.buy + result.loss.sell)) || 0;
       probLoss = result.all > 0 ? math.round(1 - probProfit, 2) || 0 : 0;
     }
+    const offset = -new Date().getTimezoneOffset() * 60 * 1000;
     const d = {
-      series: [] as { name?: string; type: 'line' | 'area'; data: (number | null)[] }[],
+      series: [] as { name?: string; type: 'line' | 'area' | 'candlestick'; data: (number | null)[] }[],
       options: {
         grid: {
           show: false,
@@ -489,6 +529,14 @@ class Index extends React.Component<{}, State> {
             x: number;
             x2: number;
             fillColor: string;
+            label: {
+              text: string;
+              style: {
+                color: string;
+              };
+            };
+            borderWidth: number;
+            borderColor: string;
           }[],
         },
         chart: {
@@ -499,6 +547,7 @@ class Index extends React.Component<{}, State> {
           toolbar: {
             tools: {
               download: false,
+              pan: false,
             },
           },
           zoom: {
@@ -506,6 +555,19 @@ class Index extends React.Component<{}, State> {
             enabled: true,
             autoScaleYaxis: true,
           },
+          animations: {
+            enabled: false,
+          },
+          events: {
+            zoomed: (_con: any, e: { xaxis: { min: number; max: number } }) =>
+              updateChartData(e.xaxis.min - offset, e.xaxis.max - offset),
+          },
+        },
+        markers: {
+          size: 0,
+        },
+        dataLabels: {
+          enabled: false,
         },
         xaxis: {
           type: 'datetime' as 'datetime',
@@ -542,13 +604,31 @@ class Index extends React.Component<{}, State> {
         labels: [] as string[],
       },
     };
+    let indic = false;
+    let dInd = { ...d };
     if (candles && usePlot) {
-      const norm = candles.length > 1000 ? Math.floor((candles.length - 1) / 1000) : 1;
-      const offset = -new Date().getTimezoneOffset() * 60 * 1000;
+      let startC = 0;
+      let dec: null | number = null;
+      const useCandles = candles.filter((c, ind) => {
+        const expr = c[4] > (chartMin || 0) && c[4] < (chartMax || Infinity);
+        if (expr && startC === 0) {
+          startC = ind;
+        }
+        return expr;
+      });
+      const norm = useCandles.length > 1000 ? Math.floor((useCandles.length - 1) / 1000) : 1;
       const x: number[] = [];
       const y: number[] = [];
-      candles.map((c, ind) => {
+      const trixSma: { trix: number[]; sma: number[] } = { trix: [], sma: [] };
+      useCandles.map((c, ind) => {
         if (ind % norm === 0 || ind === 0) {
+          if (!dec) {
+            dec = `${c[1]}`.split('.')[1]?.length || 0;
+          }
+          if (indicators && indicators.trix && indicators.sma) {
+            trixSma.trix.push(indicators.trix[startC + ind]);
+            trixSma.sma.push(indicators.sma[startC + ind]);
+          }
           x.push(c[4] + offset);
           y.push(c[1]);
           return;
@@ -563,13 +643,69 @@ class Index extends React.Component<{}, State> {
       if (result && result.hist && result.hist.length > 0) {
         result.hist
           .filter((pos: any) => (filter ? (filter === 'loss' ? pos.net <= 0 : pos.net > 0) : true))
+          .filter((pos: any) => pos.time > (chartMin || 0) && pos.time < (chartMax || Infinity))
           .map((pos: any) => {
             d.options.annotations.xaxis.push({
               x: pos.time + offset,
               x2: pos.closeTime + offset,
               fillColor: pos.net > 0 ? green['A700'] : red['A700'],
+              label: {
+                text: pos.type === 'SELL' ? 'продажа' : 'покупка',
+                style: {
+                  color: pos.net > 0 ? green['A700'] : red['A700'],
+                },
+              },
+              borderWidth: 0,
+              borderColor: '#ffffff00',
             });
           });
+      }
+      if (trixSma.trix.length > 0 && trixSma.sma.length > 0) {
+        indic = true;
+        dInd = {
+          ...d,
+          series: [],
+          options: {
+            ...d.options,
+            yaxis: { ...d.options.yaxis },
+            chart: { ...d.options.chart },
+            annotations: { ...d.options.annotations },
+          },
+        };
+        dInd.series.push({ name: 'trix', type: 'line', data: trixSma.trix });
+        dInd.series.push({ name: 'sma', type: 'line', data: trixSma.sma });
+        dInd.options.chart.height = 250;
+        dInd.options.chart.id = 'indicators';
+        //@ts-ignore
+        dInd.options.annotations.yaxis = [
+          {
+            y: sett.upper,
+            y2: sett.lower,
+            fillColor: grey[500],
+            borderWidth: 0,
+            borderColor: '#ffffff00',
+          },
+        ];
+        dInd.options.yaxis = {
+          tooltip: {
+            enabled: false,
+          },
+          labels: {
+            style: {
+              colors: ['#e7e7e7'],
+            },
+          },
+          //@ts-ignore
+          tickAmount: 3,
+          //@ts-ignore
+          decimalsInFloat: dec || 3,
+        };
+        //@ts-ignore
+        dInd.options.legend = {
+          labels: {
+            useSeriesColors: true,
+          },
+        };
       }
     }
     const startDate = new Date();
@@ -803,7 +939,8 @@ class Index extends React.Component<{}, State> {
                       <Card sx={{ width: 'calc(100% - 16px)', marginTop: 2 }}>
                         <CardHeader title="Графік" />
                         <CardContent>
-                          <Chart options={d.options} series={d.series} type="line" height={350} />
+                          <Chart options={d.options} series={d.series} height={350} />
+                          {indic && <Chart options={dInd.options} series={dInd.series} height={250} />}
                         </CardContent>
                       </Card>
                     )}

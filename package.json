@@ -2,7 +2,7 @@
   "private": true,
   "name": "@mt-inc/simulate-app",
   "description": "Simulate App for MT Inc. Project",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "author": "Maksym Shamko <max.shamko25@gmail.com>",
   "main": "app/background.js",
   "scripts": {
@@ -18,10 +18,8 @@
     "commit": "git add . && git commit -m 'working'"
   },
   "dependencies": {
-    "apexcharts": "^3.29.0",
     "electron-serve": "^1.1.0",
-    "electron-store": "^8.0.1",
-    "react-apexcharts": "^1.3.9"
+    "electron-store": "^8.0.1"
   },
   "devDependencies": {
     "@emotion/react": "^11.4.1",
@@ -38,6 +36,7 @@
     "@types/react": "^16.9.49",
     "@types/sha256-file": "^1.0.1",
     "adm-zip": "^0.5.6",
+    "apexcharts": "^3.29.0",
     "binance-api-node": "^0.11.19",
     "date-fns": "^2.24.0",
     "electron": "^15.0.0",
@@ -46,6 +45,7 @@
     "next": "^11.1.2",
     "nextron": "^7.1.0",
     "react": "^17.0.2",
+    "react-apexcharts": "^1.3.9",
     "react-dom": "^17.0.2",
     "sha256-file": "^1.0.0",
     "ts-node": "^10.2.1",

@@ -69,6 +69,8 @@ export class Loader {
   private loaded: number;
   private startWork: number;
   private candles: number[][];
+  private trix: (number | null)[];
+  private sma: (number | null)[];
   constructor(data: State & { userData: string }) {
     const { userData, ...rest } = data;
     this.data = rest;
@@ -94,6 +96,8 @@ export class Loader {
     this.startWork = new Date().getTime();
     this.cancel = false;
     this.candles = [];
+    this.trix = [];
+    this.sma = [];
   }
   private sendMessage(data: any) {
     parentPort?.postMessage({ ...data });
@@ -464,6 +468,21 @@ export class Loader {
       const candles = new Candle(sett.candle, (data: number[]) => {
         this.candles.push(data);
         bot?.work(data, now, positions, undefined, nowTime);
+        if (this.data.strategy === 'trix') {
+          const d = bot?.historyTechData as { trix: number[] | undefined; sma: number[] | undefined };
+          if (d.trix) {
+            this.trix.push(d.trix[d.trix.length - 1]);
+          }
+          if (!d.trix) {
+            this.trix.push(null);
+          }
+          if (d.sma) {
+            this.sma.push(d.sma[d.sma.length - 1]);
+          }
+          if (!d.sma) {
+            this.sma.push(null);
+          }
+        }
       });
       for (let i = 0; i < files.length; i++) {
         const item = files[i];
@@ -502,6 +521,10 @@ export class Loader {
         all,
         startWork: this.startWork,
         candles: this.candles,
+        indicators: {
+          trix: this.trix.length > 0 ? this.trix : undefined,
+          sma: this.sma.length > 0 ? this.sma : undefined,
+        },
       });
     }
   }
