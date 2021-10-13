@@ -535,6 +535,7 @@ class Index extends React.Component<{}, State> {
               style: {
                 color: string;
               };
+              orientation: 'horisontal';
             };
             borderWidth: number;
             borderColor: string;
@@ -563,7 +564,6 @@ class Index extends React.Component<{}, State> {
             zoomed: (_con: any, e: { xaxis: { min: number; max: number } }) =>
               updateChartData(e.xaxis.min - offset, e.xaxis.max - offset),
           },
-          group: 'resultCharts',
         },
         markers: {
           size: 0,
@@ -641,17 +641,22 @@ class Index extends React.Component<{}, State> {
       if (result && result.hist && result.hist.length > 0) {
         result.hist
           .filter((pos: any) => (filter ? (filter === 'loss' ? pos.net <= 0 : pos.net > 0) : true))
-          .filter((pos: any) => pos.time > (chartMin || 0) && pos.time < (chartMax || Infinity))
+          .filter(
+            (pos: any) =>
+              (pos.time > (chartMin || 0) && pos.time < (chartMax || Infinity)) ||
+              (pos.closeTime > (chartMin || 0) && pos.closeTime < (chartMax || Infinity)),
+          )
           .map((pos: any) => {
             d.options.annotations.xaxis.push({
               x: pos.time + offset,
               x2: pos.closeTime + offset,
               fillColor: pos.net > 0 ? green['A700'] : red['A700'],
               label: {
-                text: pos.type === 'SELL' ? 'продажа' : 'покупка',
+                text: pos.type === 'SELL' ? 'S' : 'B',
                 style: {
                   color: pos.net > 0 ? green['A700'] : red['A700'],
                 },
+                orientation: 'horisontal',
               },
               borderWidth: 0,
               borderColor: '#ffffff00',
@@ -665,7 +670,12 @@ class Index extends React.Component<{}, State> {
           series: [],
           options: {
             ...d.options,
-            yaxis: { ...d.options.yaxis },
+            yaxis: {
+              ...d.options.yaxis,
+              //@ts-ignore
+              tickAmount: 3,
+              decimalsInFloat: 3,
+            },
             chart: { ...d.options.chart },
             annotations: { ...d.options.annotations },
           },
@@ -684,20 +694,6 @@ class Index extends React.Component<{}, State> {
             borderColor: '#ffffff00',
           },
         ];
-        dInd.options.yaxis = {
-          tooltip: {
-            enabled: false,
-          },
-          labels: {
-            style: {
-              colors: ['#e7e7e7'],
-            },
-          },
-          //@ts-ignore
-          tickAmount: 3,
-          //@ts-ignore
-          decimalsInFloat: 3,
-        };
         //@ts-ignore
         dInd.options.legend = {
           labels: {
