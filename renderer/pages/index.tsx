@@ -562,6 +562,7 @@ class Index extends React.Component<{}, State> {
             zoomed: (_con: any, e: { xaxis: { min: number; max: number } }) =>
               updateChartData(e.xaxis.min - offset, e.xaxis.max - offset),
           },
+          group: 'resultCharts',
         },
         markers: {
           size: 0,
@@ -608,7 +609,6 @@ class Index extends React.Component<{}, State> {
     let dInd = { ...d };
     if (candles && usePlot) {
       let startC = 0;
-      let dec: null | number = null;
       const useCandles = candles.filter((c, ind) => {
         const expr = c[4] > (chartMin || 0) && c[4] < (chartMax || Infinity);
         if (expr && startC === 0) {
@@ -622,9 +622,6 @@ class Index extends React.Component<{}, State> {
       const trixSma: { trix: number[]; sma: number[] } = { trix: [], sma: [] };
       useCandles.map((c, ind) => {
         if (ind % norm === 0 || ind === 0) {
-          if (!dec) {
-            dec = `${c[1]}`.split('.')[1]?.length || 0;
-          }
           if (indicators && indicators.trix && indicators.sma) {
             trixSma.trix.push(indicators.trix[startC + ind]);
             trixSma.sma.push(indicators.sma[startC + ind]);
@@ -698,7 +695,7 @@ class Index extends React.Component<{}, State> {
           //@ts-ignore
           tickAmount: 3,
           //@ts-ignore
-          decimalsInFloat: dec || 3,
+          decimalsInFloat: 3,
         };
         //@ts-ignore
         dInd.options.legend = {
