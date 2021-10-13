@@ -301,6 +301,7 @@ class Index extends React.Component<{}, State> {
       if (Object.keys(storeData.sett).length < Object.keys(this.state.sett).length) {
         storeData.sett = { ...this.state.sett, ...storeData.sett };
         storeData.usePlot = storeData.usePlot || false;
+        storeData.loading = false;
       }
       this.setState(() => ({ ...storeData }));
     } else {
