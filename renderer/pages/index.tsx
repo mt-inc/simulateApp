@@ -916,6 +916,7 @@ class Index extends React.Component<{}, State> {
                                     >
                                       {pos.net.toLocaleString()} $
                                     </Typography>
+                                    <br />
                                     PnL:{' '}
                                     <Typography
                                       sx={{
