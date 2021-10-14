@@ -916,6 +916,15 @@ class Index extends React.Component<{}, State> {
                                     >
                                       {pos.net.toLocaleString()} $
                                     </Typography>
+                                    PnL:{' '}
+                                    <Typography
+                                      sx={{
+                                        color: pos.net > 0 ? green[500] : red[500],
+                                        display: 'inline-block',
+                                      }}
+                                    >
+                                      {this.math.round((pos.net / pos.cost) * 100, 0)}%
+                                    </Typography>
                                   </CardContent>
                                 </Card>
                               ))}
