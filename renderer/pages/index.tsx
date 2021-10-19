@@ -122,6 +122,9 @@ export type State = {
   indicators?: {
     trix?: number[];
     sma?: number[];
+    emaLow?: number[];
+    emaHigh?: number[];
+    rsi?: number[];
   };
 };
 
@@ -279,6 +282,9 @@ class Index extends React.Component<{}, State> {
           indicators: {
             trix: number[];
             sma: number[];
+            emaLow: number[];
+            emaHigh: number[];
+            rsi: number[];
           };
         },
       ) =>
@@ -565,6 +571,11 @@ class Index extends React.Component<{}, State> {
               updateChartData(e.xaxis.min - offset, e.xaxis.max - offset),
           },
         },
+        legend: {
+          labels: {
+            useSeriesColors: true,
+          },
+        },
         markers: {
           size: 0,
         },
@@ -591,6 +602,7 @@ class Index extends React.Component<{}, State> {
               colors: ['#e7e7e7'],
             },
           },
+          decimalsInFloat: 3,
         },
         tooltip: {
           theme: 'dark' as 'dark',
@@ -609,6 +621,7 @@ class Index extends React.Component<{}, State> {
     let indic = false;
     let dInd = { ...d };
     if (candles && usePlot) {
+      let dec = 3;
       let startC = 0;
       const useCandles = candles.filter((c, ind) => {
         const expr = c[4] > (chartMin || 0) && c[4] < (chartMax || Infinity);
@@ -621,22 +634,50 @@ class Index extends React.Component<{}, State> {
       const x: number[] = [];
       const y: number[] = [];
       const trixSma: { trix: number[]; sma: number[] } = { trix: [], sma: [] };
+      const emaLow: number[] = [];
+      const emaHigh: number[] = [];
+      const rsi: number[] = [];
       useCandles.map((c, ind) => {
+        if (ind === 0) {
+          dec = `${c[1]}`.split('.')[1].length;
+        }
         if (ind % norm === 0 || ind === 0) {
           if (indicators && indicators.trix && indicators.sma) {
             trixSma.trix.push(indicators.trix[startC + ind]);
             trixSma.sma.push(indicators.sma[startC + ind]);
+          }
+          if (indicators && indicators.emaLow && indicators.emaHigh) {
+            emaLow.push(indicators.emaLow[startC + ind]);
+            emaHigh.push(indicators.emaHigh[startC + ind]);
+          }
+          if (indicators && indicators.rsi) {
+            rsi.push(indicators.rsi[startC + ind]);
           }
           x.push(c[4] + offset);
           y.push(c[1]);
           return;
         }
       });
+      d.options.yaxis.decimalsInFloat = dec;
       d.series[0] = {
         name: 'ціна закриття',
         type: 'line',
         data: y,
       };
+      if (emaLow.length > 0) {
+        d.series[d.series.length] = {
+          name: `MA ${sett.maLow}`,
+          type: 'line',
+          data: emaLow,
+        };
+      }
+      if (emaHigh.length > 0) {
+        d.series[d.series.length] = {
+          name: `MA ${sett.maHigh}`,
+          type: 'line',
+          data: emaHigh,
+        };
+      }
       d.options.labels = x.map((item) => `${new Date(item)}`);
       if (result && result.hist && result.hist.length > 0) {
         result.hist
@@ -663,7 +704,7 @@ class Index extends React.Component<{}, State> {
             });
           });
       }
-      if (trixSma.trix.length > 0 && trixSma.sma.length > 0) {
+      if ((trixSma.trix.length > 0 && trixSma.sma.length > 0) || rsi.length > 0) {
         indic = true;
         dInd = {
           ...d,
@@ -674,32 +715,33 @@ class Index extends React.Component<{}, State> {
               ...d.options.yaxis,
               //@ts-ignore
               tickAmount: 3,
-              decimalsInFloat: 3,
+              decimalsInFloat: rsi.length > 0 ? 1 : 3,
             },
             chart: { ...d.options.chart },
             annotations: { ...d.options.annotations },
           },
         };
-        dInd.series.push({ name: 'trix', type: 'line', data: trixSma.trix });
-        dInd.series.push({ name: 'sma', type: 'line', data: trixSma.sma });
+        if (trixSma.trix.length > 0 && trixSma.sma.length > 0) {
+          dInd.series.push({ name: 'trix', type: 'line', data: trixSma.trix });
+          dInd.series.push({ name: 'sma', type: 'line', data: trixSma.sma });
+        }
+        if (rsi.length > 0) {
+          dInd.series.push({ name: `RSI ${sett.rsi}`, type: 'line', data: rsi });
+        }
         dInd.options.chart.height = 250;
         dInd.options.chart.id = 'indicators';
         //@ts-ignore
         dInd.options.annotations.yaxis = [
           {
-            y: sett.upper,
-            y2: sett.lower,
+            y: rsi.length > 0 ? sett.rsiHigh : sett.upper,
+            y2: rsi.length > 0 ? (sett.rsiHigh === sett.rsiLow ? undefined : sett.rsiLow) : sett.lower,
             fillColor: grey[500],
-            borderWidth: 0,
-            borderColor: '#ffffff00',
+            borderWidth: rsi.length > 0 && sett.rsiHigh === sett.rsiLow ? 0.5 : 0,
+            borderColor: `#ffffff${rsi.length > 0 && sett.rsiHigh === sett.rsiLow ? '' : '00'}`,
+            //@ts-ignore
+            strokeDashArray: rsi.length > 0 && sett.rsiHigh === sett.rsiLow ? 0 : undefined,
           },
         ];
-        //@ts-ignore
-        dInd.options.legend = {
-          labels: {
-            useSeriesColors: true,
-          },
-        };
       }
     }
     const startDate = new Date();

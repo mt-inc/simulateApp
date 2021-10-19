@@ -71,6 +71,9 @@ export class Loader {
   private candles: number[][];
   private trix: (number | null)[];
   private sma: (number | null)[];
+  private emaLow: (number | null)[];
+  private emaHigh: (number | null)[];
+  private rsi: (number | null)[];
   constructor(data: State & { userData: string }) {
     const { userData, ...rest } = data;
     this.data = rest;
@@ -98,6 +101,9 @@ export class Loader {
     this.candles = [];
     this.trix = [];
     this.sma = [];
+    this.emaLow = [];
+    this.emaHigh = [];
+    this.rsi = [];
   }
   private sendMessage(data: any) {
     parentPort?.postMessage({ ...data });
@@ -483,6 +489,33 @@ export class Loader {
             this.sma.push(null);
           }
         }
+        if (this.data.strategy.indexOf('ma') !== -1) {
+          const d = bot?.historyTechData as {
+            low: number[] | undefined;
+            high: number[] | undefined;
+            rsi: number[] | undefined;
+          };
+          if (d.low) {
+            this.emaLow.push(d.low[d.low.length - 1]);
+          }
+          if (!d.low) {
+            this.emaLow.push(null);
+          }
+          if (d.high) {
+            this.emaHigh.push(d.high[d.high.length - 1]);
+          }
+          if (!d.high) {
+            this.emaHigh.push(null);
+          }
+          if (this.data.strategy.indexOf('rsi') !== -1) {
+            if (d.rsi) {
+              this.rsi.push(d.rsi[d.rsi.length - 1]);
+            }
+            if (!d.rsi) {
+              this.rsi.push(null);
+            }
+          }
+        }
       });
       for (let i = 0; i < files.length; i++) {
         const item = files[i];
@@ -524,6 +557,9 @@ export class Loader {
         indicators: {
           trix: this.trix.length > 0 ? this.trix : undefined,
           sma: this.sma.length > 0 ? this.sma : undefined,
+          emaLow: this.emaLow.length > 0 ? this.emaLow : undefined,
+          emaHigh: this.emaHigh.length > 0 ? this.emaHigh : undefined,
+          rsi: this.rsi.length > 0 ? this.rsi : undefined,
         },
       });
     }
