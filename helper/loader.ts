@@ -74,6 +74,7 @@ export class Loader {
   private emaLow: (number | null)[];
   private emaHigh: (number | null)[];
   private rsi: (number | null)[];
+  private wallet: number[];
   constructor(data: State & { userData: string }) {
     const { userData, ...rest } = data;
     this.data = rest;
@@ -104,6 +105,7 @@ export class Loader {
     this.emaLow = [];
     this.emaHigh = [];
     this.rsi = [];
+    this.wallet = [];
   }
   private sendMessage(data: any) {
     parentPort?.postMessage({ ...data });
@@ -452,6 +454,7 @@ export class Loader {
           history: this.data.history as HistoryType,
         });
       }
+      let wallet = sett.wallet;
       const positions = new Positions(
         sett.wallet,
         sett.walletLimit,
@@ -462,7 +465,9 @@ export class Loader {
         undefined,
         undefined,
         undefined,
-        undefined,
+        (net) => {
+          wallet += net;
+        },
         undefined,
         {
           tpP: sett.tp,
@@ -516,6 +521,7 @@ export class Loader {
             }
           }
         }
+        this.wallet.push(wallet);
       });
       for (let i = 0; i < files.length; i++) {
         const item = files[i];
@@ -561,6 +567,7 @@ export class Loader {
           emaHigh: this.emaHigh.length > 0 ? this.emaHigh : undefined,
           rsi: this.rsi.length > 0 ? this.rsi : undefined,
         },
+        wallet: this.wallet,
       });
     }
   }

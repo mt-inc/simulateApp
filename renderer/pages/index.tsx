@@ -126,6 +126,7 @@ export type State = {
     emaHigh?: number[];
     rsi?: number[];
   };
+  walletChart?: number[];
 };
 
 const translate = {
@@ -286,6 +287,7 @@ class Index extends React.Component<{}, State> {
             emaHigh: number[];
             rsi: number[];
           };
+          wallet: number[];
         },
       ) =>
         this.setState((prev) => ({
@@ -299,6 +301,7 @@ class Index extends React.Component<{}, State> {
           candles: data.candles,
           endTest: new Date().getTime(),
           indicators: data.indicators,
+          walletChart: data.wallet,
         })),
     );
     ipcRenderer.on('error', (_e, error: string) => this.setState((prev) => ({ ...prev, error })));
@@ -334,11 +337,19 @@ class Index extends React.Component<{}, State> {
     delete toSave.chartMax;
     delete toSave.chartMin;
     delete toSave.indicators;
+    delete toSave.walletChart;
     ipcRenderer.send('store-data', { ...toSave });
   }
   handleChangeSelect(select: 'history' | 'pair' | 'strategy', value: string) {
     this.setState(
-      (prev) => ({ ...prev, [select]: value, result: undefined, candles: undefined, indicators: undefined }),
+      (prev) => ({
+        ...prev,
+        [select]: value,
+        result: undefined,
+        candles: undefined,
+        indicators: undefined,
+        walletChart: undefined,
+      }),
       this.saveData,
     );
   }
@@ -351,6 +362,7 @@ class Index extends React.Component<{}, State> {
           result: undefined,
           candles: undefined,
           indicators: undefined,
+          walletChart: undefined,
         }),
         this.saveData,
       );
@@ -371,6 +383,7 @@ class Index extends React.Component<{}, State> {
         result: undefined,
         candles: undefined,
         indicators: undefined,
+        walletChart: undefined,
       }),
       this.saveData,
     );
@@ -492,6 +505,7 @@ class Index extends React.Component<{}, State> {
         chartMax,
         chartMin,
         indicators,
+        walletChart,
       },
       handleChangeSelect,
       handleChangeDate,
@@ -529,7 +543,17 @@ class Index extends React.Component<{}, State> {
       series: [] as { name?: string; type: 'line' | 'area' | 'candlestick'; data: (number | null)[] }[],
       options: {
         grid: {
-          show: false,
+          borderColor: '#3c3f40',
+          xaxis: {
+            lines: {
+              show: true,
+            },
+          },
+          yaxis: {
+            lines: {
+              show: true,
+            },
+          },
         },
         annotations: {
           xaxis: [] as {
@@ -575,6 +599,7 @@ class Index extends React.Component<{}, State> {
           labels: {
             useSeriesColors: true,
           },
+          showForSingleSeries: true,
         },
         markers: {
           size: 0,
@@ -613,13 +638,15 @@ class Index extends React.Component<{}, State> {
         stroke: {
           curve: 'smooth' as 'smooth',
           lineCap: 'round' as 'round',
-          width: 1.75,
+          width: 2,
         },
         labels: [] as string[],
       },
     };
     let indic = false;
     let dInd = { ...d };
+    let dWall = { ...d };
+    let walChart = false;
     if (candles && usePlot) {
       let dec = 3;
       let startC = 0;
@@ -637,6 +664,7 @@ class Index extends React.Component<{}, State> {
       const emaLow: number[] = [];
       const emaHigh: number[] = [];
       const rsi: number[] = [];
+      const wallets: number[] = [];
       useCandles.map((c, ind) => {
         if (ind === 0) {
           dec = `${c[1]}`.split('.')[1].length;
@@ -653,6 +681,9 @@ class Index extends React.Component<{}, State> {
           if (indicators && indicators.rsi) {
             rsi.push(indicators.rsi[startC + ind]);
           }
+          if (walletChart) {
+            wallets.push(walletChart[startC + ind]);
+          }
           x.push(c[4] + offset);
           y.push(c[1]);
           return;
@@ -660,7 +691,7 @@ class Index extends React.Component<{}, State> {
       });
       d.options.yaxis.decimalsInFloat = dec;
       d.series[0] = {
-        name: 'ціна закриття',
+        name: 'Ціна закриття',
         type: 'line',
         data: y,
       };
@@ -722,8 +753,8 @@ class Index extends React.Component<{}, State> {
           },
         };
         if (trixSma.trix.length > 0 && trixSma.sma.length > 0) {
-          dInd.series.push({ name: 'trix', type: 'line', data: trixSma.trix });
-          dInd.series.push({ name: 'sma', type: 'line', data: trixSma.sma });
+          dInd.series.push({ name: `TRIX ${sett.trix}`, type: 'line', data: trixSma.trix });
+          dInd.series.push({ name: `SMA ${sett.sma}`, type: 'line', data: trixSma.sma });
         }
         if (rsi.length > 0) {
           dInd.series.push({ name: `RSI ${sett.rsi}`, type: 'line', data: rsi });
@@ -742,6 +773,43 @@ class Index extends React.Component<{}, State> {
             strokeDashArray: rsi.length > 0 && sett.rsiHigh === sett.rsiLow ? 0 : undefined,
           },
         ];
+      }
+      if (walletChart && walletChart.length > 0 && wallets.length > 0) {
+        walChart = true;
+        dWall = {
+          ...d,
+          series: [],
+          options: {
+            ...d.options,
+            //@ts-ignore
+            yaxis: [
+              {
+                ...d.options.yaxis,
+                //@ts-ignore
+                tickAmount: 3,
+                decimalsInFloat: 0,
+                seriesName: 'Гаманець',
+              },
+              {
+                ...d.options.yaxis,
+                //@ts-ignore
+                tickAmount: 3,
+                opposite: true,
+                decimalsInFloat: 0,
+                logarithmic: true,
+                seriesName: 'Гаманець (логаріфмічний)',
+              },
+            ],
+            chart: { ...d.options.chart },
+            annotations: {
+              xaxis: [],
+            },
+          },
+        };
+        dWall.options.chart.height = 250;
+        dWall.options.chart.id = 'wallet';
+        dWall.series.push({ name: 'Гаманець', type: 'line', data: wallets });
+        dWall.series.push({ name: 'Гаманець (логаріфмічний)', type: 'line', data: wallets });
       }
     }
     const startDate = new Date();
@@ -921,17 +989,12 @@ class Index extends React.Component<{}, State> {
                           {result.hist &&
                             result.hist.length > 0 &&
                             result.hist
-                              .filter((pos: any) => {
-                                if (filter) {
-                                  if (filter === 'profit') {
-                                    return pos.net > 0;
-                                  }
-                                  if (filter === 'loss') {
-                                    return pos.net <= 0;
-                                  }
-                                }
-                                return true;
-                              })
+                              .filter((pos: any) => (filter ? (filter === 'loss' ? pos.net <= 0 : pos.net > 0) : true))
+                              .filter(
+                                (pos: any) =>
+                                  (pos.time > (chartMin || 0) && pos.time < (chartMax || Infinity)) ||
+                                  (pos.closeTime > (chartMin || 0) && pos.closeTime < (chartMax || Infinity)),
+                              )
                               .map((pos: any) => (
                                 <Card key={pos.id} raised sx={{ marginBottom: 2 }}>
                                   <CardContent>
@@ -987,6 +1050,7 @@ class Index extends React.Component<{}, State> {
                         <CardContent>
                           <Chart options={d.options} series={d.series} height={350} />
                           {indic && <Chart options={dInd.options} series={dInd.series} height={250} />}
+                          {walChart && <Chart options={dWall.options} series={dWall.series} height={250} />}
                         </CardContent>
                       </Card>
                     )}

@@ -2,7 +2,7 @@
   "private": true,
   "name": "@mt-inc/simulate-app",
   "description": "Simulate App for MT Inc. Project",
-  "version": "1.2.8",
+  "version": "1.2.9",
   "author": "Maksym Shamko <max.shamko25@gmail.com>",
   "main": "app/background.js",
   "scripts": {
