@@ -467,6 +467,9 @@ export class Loader {
         undefined,
         (net) => {
           wallet += net;
+          if (wallet < 1) {
+            wallet = 1;
+          }
         },
         undefined,
         {
