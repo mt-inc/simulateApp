@@ -667,7 +667,7 @@ class Index extends React.Component<{}, State> {
       const wallets: number[] = [];
       useCandles.map((c, ind) => {
         if (ind === 0) {
-          dec = `${c[1]}`.split('.')[1].length;
+          dec = `${c[1]}`.split('.')[1]?.length || 3;
         }
         if (ind % norm === 0 || ind === 0) {
           if (indicators && indicators.trix && indicators.sma) {
@@ -818,7 +818,7 @@ class Index extends React.Component<{}, State> {
     return (
       <>
         <Head>
-          <title>MT Симуляції</title>
+          <title>MT Симуляції - {pair}</title>
         </Head>
         <Dialog
           open={loading}
