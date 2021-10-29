@@ -384,27 +384,36 @@ export class Loader {
       let start = 0;
       let end = 0;
       let files = this.getFiles();
-      for (let i = 0; i < files.length; i++) {
+      let first = 0;
+      let last = 0;
+      const f = getFileLinesSync(`${this.path}/${files[0]}`, 'utf8');
+      for (const d of f) {
         if (!this.cancel) {
-          const file = files[i];
-          const data = getFileLinesSync(`${this.path}/${file}`, 'utf8');
-          for (const d of data) {
-            if (!this.cancel) {
-              let [_aggId, p, v, _firstId, _lastId, time, _wasMaker] = d.split(',');
-              const t = parseInt(time);
-              if (p && v && t) {
-                if (t > startFrom && t < endTo) {
-                  if (c === 0) {
-                    start = t;
-                  }
-                  c++;
-                  end = t;
-                }
+          let [aggId, p, v, _firstId, _lastId, time, _wasMaker] = d.split(',');
+          const t = parseInt(time);
+          if (p && v && t) {
+            if (t > startFrom && t < endTo) {
+              if (first === 0) {
+                start = t;
+                first = parseInt(aggId);
               }
             }
           }
         }
       }
+      const l = getFileLinesSync(`${this.path}/${files[files.length - 1]}`, 'utf8');
+      for (const d of l) {
+        if (!this.cancel) {
+          let [aggId, p, v, _firstId, _lastId, time, _wasMaker] = d.split(',');
+          const t = parseInt(time);
+          if (p && v && t) {
+            if (t > startFrom && t < endTo) {
+              last = parseInt(aggId);
+            }
+          }
+        }
+      }
+      c = last - (first - 1);
       return { c, start, end };
     }
   }
