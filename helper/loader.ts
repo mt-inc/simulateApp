@@ -409,6 +409,7 @@ export class Loader {
           if (p && v && t) {
             if (t > startFrom && t < endTo) {
               last = parseInt(aggId);
+              end = t;
             }
           }
         }
