@@ -143,9 +143,9 @@ export class Loader {
         const splitDateArr = splitZip.split('-');
         const splitDate = splitDateArr[splitDateArr.length - 1];
         const apiStartDate = new Date();
-        apiStartDate.setUTCDate(parseInt(splitDate) + 1);
-        apiStartDate.setUTCMonth(parseInt(splitDateArr[splitDateArr.length - 2]) - 1);
         apiStartDate.setUTCFullYear(parseInt(splitDateArr[splitDateArr.length - 3]));
+        apiStartDate.setUTCMonth(parseInt(splitDateArr[splitDateArr.length - 2]) - 1);
+        apiStartDate.setUTCDate(parseInt(splitDate) + 1);
         apiStartDate.setUTCHours(0);
         apiStartDate.setUTCMinutes(0);
         apiStartDate.setUTCSeconds(0);
@@ -208,7 +208,6 @@ export class Loader {
         step: 5,
       });
       this.makeTest(resNow?.c, resNow?.start, resNow?.end);
-      this.clearFolder();
     } catch (e: any) {
       if (e.code === 'ENOTFOUND' && e.erroredSysCall === 'getaddrinfo') {
         this.sendMessage({ event: 'error', text: "Немає інтернет-з'єднання" });

@@ -540,7 +540,11 @@ class Index extends React.Component<{}, State> {
     }
     const offset = -new Date().getTimezoneOffset() * 60 * 1000;
     const d = {
-      series: [] as { name?: string; type: 'line' | 'area' | 'candlestick'; data: (number | null)[] }[],
+      series: [] as {
+        name?: string;
+        type: 'line' | 'area' | 'candlestick' | 'column' | 'bar';
+        data: (number | null)[];
+      }[],
       options: {
         grid: {
           borderColor: '#3c3f40',
@@ -629,6 +633,7 @@ class Index extends React.Component<{}, State> {
           },
           decimalsInFloat: 3,
         },
+
         tooltip: {
           theme: 'dark' as 'dark',
           x: {
@@ -646,6 +651,7 @@ class Index extends React.Component<{}, State> {
     let indic = false;
     let dInd = { ...d };
     let dWall = { ...d };
+    let dVol = { ...d };
     let walChart = false;
     if (candles && usePlot) {
       let dec = 3;
@@ -665,6 +671,7 @@ class Index extends React.Component<{}, State> {
       const emaHigh: number[] = [];
       const rsi: number[] = [];
       const wallets: number[] = [];
+      const volumes: number[] = [];
       useCandles.map((c, ind) => {
         if (ind === 0) {
           dec = `${c[1]}`.split('.')[1]?.length || 3;
@@ -684,6 +691,7 @@ class Index extends React.Component<{}, State> {
           if (walletChart) {
             wallets.push(walletChart[startC + ind]);
           }
+          volumes.push(c[5]);
           x.push(c[4] + offset);
           y.push(c[1]);
           return;
@@ -811,6 +819,27 @@ class Index extends React.Component<{}, State> {
         dWall.series.push({ name: 'Гаманець', type: 'line', data: wallets });
         dWall.series.push({ name: 'Гаманець (логаріфмічний)', type: 'line', data: wallets });
       }
+      dVol = {
+        ...d,
+        series: [],
+        options: {
+          ...d.options,
+          //@ts-ignore
+          yaxis: {
+            ...d.options.yaxis,
+            //@ts-ignore
+            decimalsInFloat: 0,
+          },
+
+          chart: { ...d.options.chart },
+          annotations: {
+            xaxis: [],
+          },
+        },
+      };
+      dVol.options.chart.height = 250;
+      dVol.options.chart.id = 'volumes';
+      dVol.series.push({ name: "Об'єм", type: 'column', data: volumes });
     }
     const startDate = new Date();
     startDate.setMonth(startDate.getMonth() - 8);
@@ -1049,6 +1078,7 @@ class Index extends React.Component<{}, State> {
                         <CardHeader title="Графік" />
                         <CardContent>
                           <Chart options={d.options} series={d.series} height={350} />
+                          <Chart options={dVol.options} series={dVol.series} height={250} type="bar" />
                           {indic && <Chart options={dInd.options} series={dInd.series} height={250} />}
                           {walChart && <Chart options={dWall.options} series={dWall.series} height={250} />}
                         </CardContent>
