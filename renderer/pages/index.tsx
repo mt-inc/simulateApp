@@ -543,7 +543,7 @@ class Index extends React.Component<{}, State> {
       series: [] as {
         name?: string;
         type: 'line' | 'area' | 'candlestick' | 'column' | 'bar';
-        data: (number | null)[];
+        data: (number | null | number[] | { x: number; y: number | number[] })[];
       }[],
       options: {
         grid: {
@@ -666,6 +666,7 @@ class Index extends React.Component<{}, State> {
       const norm = useCandles.length > 1000 ? Math.floor((useCandles.length - 1) / 1000) : 1;
       const x: number[] = [];
       const y: number[] = [];
+      const cand: number[][] = [];
       const trixSma: { trix: number[]; sma: number[] } = { trix: [], sma: [] };
       const emaLow: number[] = [];
       const emaHigh: number[] = [];
@@ -694,6 +695,7 @@ class Index extends React.Component<{}, State> {
           volumes.push(c[5]);
           x.push(c[4] + offset);
           y.push(c[1]);
+          cand.push([c[0], c[3], c[2], c[1]]);
           return;
         }
       });
@@ -701,20 +703,37 @@ class Index extends React.Component<{}, State> {
       d.series[0] = {
         name: 'Ціна закриття',
         type: 'line',
-        data: y,
+        data: y.map((v, ind) => ({
+          x: x[ind],
+          y: v,
+        })),
+      };
+      d.series[1] = {
+        name: 'Свічки',
+        type: 'candlestick',
+        data: cand.map((v, ind) => ({
+          x: x[ind],
+          y: v,
+        })),
       };
       if (emaLow.length > 0) {
         d.series[d.series.length] = {
           name: `MA ${sett.maLow}`,
           type: 'line',
-          data: emaLow,
+          data: emaLow.map((v, ind) => ({
+            x: x[ind],
+            y: v,
+          })),
         };
       }
       if (emaHigh.length > 0) {
         d.series[d.series.length] = {
           name: `MA ${sett.maHigh}`,
           type: 'line',
-          data: emaHigh,
+          data: emaHigh.map((v, ind) => ({
+            x: x[ind],
+            y: v,
+          })),
         };
       }
       d.options.labels = x.map((item) => `${new Date(item)}`);

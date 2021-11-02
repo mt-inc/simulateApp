@@ -389,9 +389,9 @@ export class Loader {
       const f = getFileLinesSync(`${this.path}/${files[0]}`, 'utf8');
       for (const d of f) {
         if (!this.cancel) {
-          let [aggId, p, v, _firstId, _lastId, time, _wasMaker] = d.split(',');
+          let [aggId, _p, _v, _firstId, _lastId, time, _wasMaker] = d.split(',');
           const t = parseInt(time);
-          if (p && v && t) {
+          if (!isNaN(t) && t !== 0) {
             if (t > startFrom && t < endTo) {
               if (first === 0) {
                 start = t;
@@ -404,9 +404,9 @@ export class Loader {
       const l = getFileLinesSync(`${this.path}/${files[files.length - 1]}`, 'utf8');
       for (const d of l) {
         if (!this.cancel) {
-          let [aggId, p, v, _firstId, _lastId, time, _wasMaker] = d.split(',');
+          let [aggId, _p, _v, _firstId, _lastId, time, _wasMaker] = d.split(',');
           const t = parseInt(time);
-          if (p && v && t) {
+          if (!isNaN(t) && t !== 0) {
             if (t > startFrom && t < endTo) {
               last = parseInt(aggId);
               end = t;
@@ -551,7 +551,7 @@ export class Loader {
                 positions.checkPositionRt(now, nowTime);
               }
               c++;
-              if (c % (all > 10000000 ? 300000 : 100000) === 0) {
+              if (c % (all > 10000000 ? 600000 : 300000) === 0) {
                 this.sendMessage({
                   event: 'loaderEvent',
                   text: `Початок симуляції</br>В період з ${this.time.format(start)} до ${this.time.format(
