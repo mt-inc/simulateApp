@@ -208,6 +208,7 @@ export class Loader {
         step: 5,
       });
       this.makeTest(resNow?.c, resNow?.start, resNow?.end);
+      this.clearFolder();
     } catch (e: any) {
       if (e.code === 'ENOTFOUND' && e.erroredSysCall === 'getaddrinfo') {
         this.sendMessage({ event: 'error', text: "Немає інтернет-з'єднання" });
@@ -413,7 +414,7 @@ export class Loader {
           }
         }
       }
-      c = last - (first - 1);
+      c = Math.abs(last - (first - 1));
       return { c, start, end };
     }
   }
