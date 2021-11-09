@@ -414,7 +414,6 @@ export class Loader {
           }
         }
       }
-      console.log(files, files[files.length - 1], { c, start, end, startFrom, endTo });
       c = Math.abs(last - (first - 1));
       return { c, start, end };
     }
