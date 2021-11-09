@@ -219,6 +219,16 @@ export class Loader {
   }
   private getFiles() {
     const { start, end } = this.data;
+    const startDate = new Date(start);
+    const endDate = new Date(end);
+    startDate.setUTCHours(0);
+    startDate.setUTCMinutes(0);
+    startDate.setUTCSeconds(0);
+    startDate.setUTCMilliseconds(0);
+    endDate.setUTCHours(23);
+    endDate.setUTCMinutes(59);
+    endDate.setUTCSeconds(59);
+    endDate.setUTCMilliseconds(999);
     return fs
       .readdirSync(this.path)
       .filter((file) => file.indexOf('.csv') !== -1)
@@ -227,20 +237,10 @@ export class Loader {
           return true;
         }
         const split = item.split('.csv')[0].split('-');
-        const startDate = new Date(start);
-        const endDate = new Date(end);
         const splitDate = new Date();
-        splitDate.setUTCDate(parseInt(split[split.length - 1]));
-        splitDate.setUTCMonth(parseInt(split[split.length - 2]) - 1);
         splitDate.setUTCFullYear(parseInt(split[split.length - 3]));
-        startDate.setUTCHours(0);
-        startDate.setUTCMinutes(0);
-        startDate.setUTCSeconds(0);
-        startDate.setUTCMilliseconds(0);
-        endDate.setUTCHours(23);
-        endDate.setUTCMinutes(59);
-        endDate.setUTCSeconds(59);
-        endDate.setUTCMilliseconds(999);
+        splitDate.setUTCMonth(parseInt(split[split.length - 2]) - 1);
+        splitDate.setUTCDate(parseInt(split[split.length - 1]));
         return splitDate.getTime() > startDate.getTime() && splitDate.getTime() < endDate.getTime();
       });
   }
@@ -414,6 +414,7 @@ export class Loader {
           }
         }
       }
+      console.log(files, files[files.length - 1], { c, start, end, startFrom, endTo });
       c = Math.abs(last - (first - 1));
       return { c, start, end };
     }
