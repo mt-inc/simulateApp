@@ -127,6 +127,7 @@ export type State = {
     rsi?: number[];
   };
   walletChart?: number[];
+  newFormula: boolean;
 };
 
 const translate = {
@@ -151,6 +152,7 @@ const translate = {
   rsi: 'Період RSI',
   rsiHigh: 'Верхній RSI',
   rsiLow: 'Нижній RSI',
+  newFormula: 'Нова формула',
 };
 
 class Index extends React.Component<{}, State> {
@@ -220,6 +222,7 @@ class Index extends React.Component<{}, State> {
         'Результат',
       ],
       step: 0,
+      newFormula: false,
     };
     this.math = new MathHelper();
     this.time = new Time();
@@ -257,7 +260,7 @@ class Index extends React.Component<{}, State> {
         fields: ['maLow', 'maHigh', 'trs', 'ampTrs', 'rsi', 'rsiHigh', 'rsiLow'],
       },
     ];
-    this.commonFileds = ['candle', 'tp', 'sl', 'tsl', 'leverage', 'wallet', 'walletLimit'];
+    this.commonFileds = ['candle', 'tp', 'sl', 'tsl', 'leverage', 'wallet', 'walletLimit', 'newFormula'];
   }
   componentDidMount() {
     ipcRenderer.on('loaderEvent', (_e, data: { text: string; step: number; progress?: number }) =>
@@ -340,7 +343,7 @@ class Index extends React.Component<{}, State> {
     delete toSave.walletChart;
     ipcRenderer.send('store-data', { ...toSave });
   }
-  handleChangeSelect(select: 'history' | 'pair' | 'strategy', value: string) {
+  handleChangeSelect(select: 'history' | 'pair' | 'strategy' | 'newFormula', value: string | boolean) {
     this.setState(
       (prev) => ({
         ...prev,
@@ -506,6 +509,7 @@ class Index extends React.Component<{}, State> {
         chartMin,
         indicators,
         walletChart,
+        newFormula,
       },
       handleChangeSelect,
       handleChangeDate,
@@ -1214,7 +1218,7 @@ class Index extends React.Component<{}, State> {
                 ))}
               </Select>
             </FormControl>
-            <FormControl sx={{ width: 200, marginTop: 2 }}>
+            <FormControl sx={{ width: 200, marginTop: 2, marginRight: 2 }}>
               <InputLabel id="history">Вікно історії</InputLabel>
               <Select
                 labelId="history"
@@ -1226,6 +1230,22 @@ class Index extends React.Component<{}, State> {
                 {histories.map((item, ind) => (
                   <MenuItem key={`${item}-${ind}`} value={item}>
                     {item === '2c' ? 'Через 2 свічки' : 'Через 3 свічки'}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl sx={{ width: 200, marginTop: 2 }}>
+              <InputLabel id="newFromula">Нова формула</InputLabel>
+              <Select
+                labelId="newFormula"
+                id="newFormula-select"
+                value={newFormula}
+                label="нова формула"
+                onChange={(e) => handleChangeSelect('newFormula', e.target.value === 'true')}
+              >
+                {[true, false].map((item, ind) => (
+                  <MenuItem key={`${item}-${ind}`} value={`${item}`}>
+                    {item ? 'Так' : 'Ні'}
                   </MenuItem>
                 ))}
               </Select>

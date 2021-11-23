@@ -57,6 +57,7 @@ export type State = {
   startWork?: number;
   anchor?: HTMLElement;
   filter?: 'profit' | 'loss';
+  newFormula: boolean;
 };
 
 export class Loader {
@@ -488,6 +489,7 @@ export class Loader {
         },
         { tSlP: sett.tsl },
         true,
+        this.data.newFormula,
       );
       const candles = new Candle(sett.candle, (data: number[]) => {
         this.candles.push(data);
