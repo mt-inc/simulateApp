@@ -182,6 +182,7 @@ class Index extends React.Component<{}, State> {
       'ETHUSDT',
       'SOLUSDT',
       'XRPUSDT',
+      '1000SHIBUSDT',
     ];
     this.strategies = ['trix', 'ema+rsi', 'ema', 'sma+rsi', 'sma'];
     this.histories = ['2c', '3c'];
